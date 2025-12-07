@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Expense Manager Pro</title>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Identity Services (Async Load) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --nav-height: 65px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .app-title { font-weight: 700; font-size: 1.2rem; }
+        .total-badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; }
+        
+        .search-container { display: flex; gap: 8px; }
+        .search-select {
+            padding: 0 10px; border: none; border-radius: 12px;
+            background: white; color: var(--text); font-size: 0.9rem;
+            outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 100px;
+        }
+        .search-wrap { position: relative; flex: 1; }
+        .search-input {
+            width: 100%; padding: 12px 15px 12px 40px; border: none; border-radius: 12px;
+            font-size: 1rem; background: white; color: var(--text); box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+
+        /* VIEWS */
+        .view-section { display: none; padding: 15px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.2s ease-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            transition: transform 0.1s;
+        }
+        .card:active { transform: scale(0.98); background: #f1f5f9; }
+        .card:hover { border-left-color: var(--primary); }
+
+        .card-row-1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+        .card-title { font-weight: 700; font-size: 1rem; color: var(--text); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 70%; }
+        .card-price { font-weight: 800; font-size: 1rem; color: var(--primary); }
+        
+        .card-row-2 { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); }
+        .card-meta { display: flex; align-items: center; gap: 8px; }
+        .pill { background: #eff6ff; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; }
+
+        /* SUMMARY & SETTINGS */
+        .section-box { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow); }
+        .box-header { font-weight: 700; color: var(--text); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; }
+        
+        .settle-item { 
+            background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
+            padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
+        .stat-row:last-child { border-bottom: none; }
+
+        /* NAV */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            background: white; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; align-items: center; z-index: 90;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            flex: 1; height: 100%; background: none; border: none; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #94a3b8; font-size: 0.7rem; gap: 4px; cursor: pointer;
+        }
+        .nav-item.active { color: var(--primary); font-weight: 600; }
+        .nav-item i { font-size: 1.3rem; margin-bottom: 2px; }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 85px; right: 20px;
+            width: 58px; height: 58px; background: var(--primary); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: none; cursor: pointer; z-index: 100;
+        }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: 0.2s;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal {
+            background: white; width: 90%; max-width: 450px;
+            border-radius: 16px; padding: 24px; max-height: 90vh; overflow-y: auto;
+            transform: translateY(20px); transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+
+        .form-group { margin-bottom: 15px; }
+        .label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+        .input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+        .input:focus { border-color: var(--primary); outline: none; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-google { background: #4285F4; color: white; margin-bottom: 10px; }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+        .btn-danger { background: #fee2e2; color: var(--danger); }
+        .btn-copy { background: #f59e0b; color: white; }
+
+        .hidden { display: none !important; }
+        .picker-hidden { position: fixed; top: -100px; left: -100px; opacity: 0; }
+        
+        /* Drive Status */
+        .sync-status { text-align: center; padding: 10px; border-radius: 8px; background: #f1f5f9; margin-bottom: 15px; font-size: 0.9rem; }
+        .sync-status.active { background: #dcfce7; color: #166534; }
+        
+        /* Current Range Display */
+        .current-range {
+            text-align: center; font-size: 0.9rem; color: var(--primary); font-weight: 600; 
+            margin-bottom: 12px; padding: 8px; background: #eff6ff; border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LIST VIEW -->
+    <div id="viewList" class="view-section active">
+        <header>
+            <div class="header-top">
+                <div class="app-title">Expense Manager</div>
+                <div class="total-badge" id="headerTotal">SR 0.00</div>
+            </div>
+            <div class="search-container">
+                <select id="searchType" class="search-select" onchange="renderList()">
+                    <option value="all">All</option>
+                    <option value="item">Item</option>
+                    <option value="paid">Paid By</option>
+                    <option value="consumed">Consumed</option>
+                    <option value="price">SAR</option>
+                </select>
+                <div class="search-wrap">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeyup="renderList()">
+                </div>
+            </div>
+        </header>
+        <div id="listContainer" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- SUMMARY VIEW -->
+    <div id="viewSummary" class="view-section">
+        <h2 style="margin: 0 0 15px 0;">Analysis</h2>
+        
+        <div class="section-box">
+            <div class="label">Time Period</div>
+            <div id="currentRangeDisplay" class="current-range">All Time</div>
+            
+            <button class="btn btn-primary" onclick="openDateModal()">Select Date Range</button>
+            <button class="btn btn-outline" onclick="resetDates()">Show All Time</button>
+        </div>
+
+        <div class="section-box">
+            <div class="box-header"><span>Settlement</span> <i class="fas fa-handshake" style="color:var(--success)"></i></div>
+            <div id="settlementArea"></div>
+        </div>
+
+        <div class="section-box">
+            <div class="box-header">Who Paid</div>
+            <div id="paidArea"></div>
+        </div>
+        
+        <div class="section-box">
+            <div class="box-header">Who Consumed</div>
+            <div id="consumedArea"></div>
+        </div>
+    </div>
+
+    <!-- SETTINGS / SYNC VIEW -->
+    <div id="viewSettings" class="view-section">
+        <h2 style="margin: 0 0 15px 0;">Data & Sync</h2>
+
+        <!-- Google Drive Section -->
+        <div class="section-box">
+            <div class="box-header"><span>Google Drive Backup</span> <i class="fab fa-google-drive" style="color:#4285F4"></i></div>
+            
+            <div id="syncStatus" class="sync-status">
+                <i class="fas fa-circle-notch fa-spin"></i> Initializing...
+            </div>
+
+            <div id="driveControls" class="hidden">
+                <button class="btn btn-google" onclick="handleAuthClick()">
+                    <i class="fab fa-google"></i> Connect Google Account
+                </button>
+            </div>
+
+            <div id="driveActions" class="hidden">
+                <button class="btn btn-primary" onclick="backupToDrive()">
+                    <i class="fas fa-cloud-upload-alt"></i> Backup to Drive
+                </button>
+                <button class="btn btn-outline" onclick="restoreFromDrive()">
+                    <i class="fas fa-cloud-download-alt"></i> Restore from Drive
+                </button>
+                <div style="margin-top:10px; font-size:0.8rem; color:#64748b; text-align:center;">
+                    File: expense_manager_backup.json
+                </div>
+            </div>
+        </div>
+
+        <!-- Local Data Section -->
+        <div class="section-box">
+            <div class="box-header">Local Data</div>
+            
+            <input type="file" id="importFile" accept=".csv" class="hidden" onchange="handleFileSelect(this)">
+            
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
+                <i class="fas fa-file-import"></i> Import CSV
+            </button>
+            
+            <button class="btn btn-outline" onclick="openExportModal()">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </button>
+            
+            <button class="btn btn-danger" onclick="clearAllData()">
+                <i class="fas fa-trash-alt"></i> Clear All Data
+            </button>
+            
+            <div class="label" style="margin-top:10px; font-weight:400; text-align:center;">
+                Supports Import/Export for Excel/Sheets
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT -->
+    <div class="modal-overlay" id="modalEntry">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 id="modalTitle" style="margin:0;">Expense</h3>
+                <i class="fas fa-times" onclick="closeModal('modalEntry')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
+            </div>
+            
+            <input type="hidden" id="entryId">
+            <div class="form-group">
+                <label class="label">Date</label>
+                <input type="datetime-local" id="inpDate" class="input">
+            </div>
+            <div class="form-group">
+                <label class="label">Item</label>
+                <input type="text" id="inpItem" class="input" placeholder="e.g. Dinner">
+            </div>
+            <div class="form-group">
+                <label class="label">Price (SR)</label>
+                <input type="number" id="inpPrice" class="input" placeholder="0.00" step="0.01">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1">
+                    <label class="label">Paid By</label>
+                    <input type="text" id="inpPaid" class="input" list="namesList" placeholder="Alice, Bob">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label class="label">Consumed By</label>
+                    <input type="text" id="inpConsumed" class="input" list="namesList" placeholder="Alice, Bob, C...">
+                </div>
+            </div>
+            <div class="label" style="margin-top:-10px; margin-bottom:15px; font-weight:400; font-size:0.75rem;">
+                Tip: Separate multiple names with commas.
+            </div>
+
+            <div class="form-group">
+                <label class="label">Description</label>
+                <input type="text" id="inpDesc" class="input">
+            </div>
+
+            <button class="btn btn-primary" onclick="saveEntry()">Save Record</button>
+            
+            <div id="editTools" class="hidden" style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-copy" onclick="triggerCopy()"><i class="fas fa-copy"></i> Copy</button>
+                <button class="btn btn-danger" onclick="deleteEntry()"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DATE PICKER FOR SUMMARY -->
+    <div class="modal-overlay" id="modalDateFilter">
+        <div class="modal">
+            <h3>Select Date Range</h3>
+            <div class="form-group">
+                <label class="label">From</label>
+                <input type="date" id="sumStart" class="input">
+            </div>
+            <div class="form-group">
+                <label class="label">To</label>
+                <input type="date" id="sumEnd" class="input">
+            </div>
+            <button class="btn btn-primary" onclick="applyDateFilter()">Apply Filter</button>
+            <button class="btn btn-outline" onclick="closeModal('modalDateFilter')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- MODAL: EXPORT -->
+    <div class="modal-overlay" id="modalExport">
+        <div class="modal">
+            <h3>Export Data</h3>
+            <div class="form-group">
+                <label class="label">From</label>
+                <input type="date" id="expStart" class="input">
+            </div>
+            <div class="form-group">
+                <label class="label">To</label>
+                <input type="date" id="expEnd" class="input">
+            </div>
+            <button class="btn btn-primary" onclick="executeExport('csv')">Download CSV</button>
+            <button class="btn btn-copy" onclick="executeExport('share')">Share File</button>
+            <button class="btn btn-outline" onclick="closeModal('modalExport')">Cancel</button>
+        </div>
+    </div>
+
+    <input type="date" id="copyDateInput" class="picker-hidden" onchange="finishCopy()">
+    <datalist id="namesList"></datalist>
+    <button class="fab" onclick="openEntryModal()"><i class="fas fa-plus"></i></button>
+
+    <!-- NAV -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchView('list')" id="btnList">
+            <i class="fas fa-list"></i> <span>Records</span>
+        </button>
+        <button class="nav-item" onclick="switchView('summary')" id="btnSum">
+            <i class="fas fa-chart-pie"></i> <span>Summary</span>
+        </button>
+        <button class="nav-item" onclick="switchView('settings')" id="btnSet">
+            <i class="fas fa-cloud"></i> <span>Sync</span>
+        </button>
+    </nav>
+
+    <script>
+        // --- CURRENCY CONSTANT ---
+        const CURRENCY_SYMBOL = 'SR '; 
+
+        // --- GOOGLE CONFIGURATION ---
+        const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; 
+        const API_KEY = 'YOUR_API_KEY_HERE';
+        
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+        // --- STATE ---
+        let entries = JSON.parse(localStorage.getItem('expense_data_v7')) || [];
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+        let summaryStartDate = null;
+        let summaryEndDate = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderList();
+            populateNames();
+            // Pre-fill date modals
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sumStart').value = today;
+            document.getElementById('sumEnd').value = today;
+            
+            // Check if user filled in config
+            if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+                document.getElementById('syncStatus').innerHTML = '⚠️ Setup Required: Add Client ID in code.';
+            } else {
+                checkGoogleLoaded();
+            }
+        });
+
+        // --- CORE LOGIC ---
+        function cleanName(str) {
+            return str ? str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : "";
+        }
+        
+        function formatCurrency(amount) {
+            return CURRENCY_SYMBOL + parseFloat(amount).toFixed(2);
+        }
+
+        function renderList() {
+            const container = document.getElementById('listContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const type = document.getElementById('searchType').value;
+            
+            let data = [...entries].sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            if(search) {
+                data = data.filter(e => {
+                    const itemMatch = e.item.toLowerCase().includes(search);
+                    const paidMatch = e.paidBy.toLowerCase().includes(search);
+                    const consMatch = e.consumedBy.toLowerCase().includes(search);
+                    const priceMatch = e.price.toString().includes(search);
+
+                    if (type === 'all') return itemMatch || paidMatch || consMatch || priceMatch;
+                    if (type === 'item') return itemMatch;
+                    if (type === 'paid') return paidMatch;
+                    if (type === 'consumed') return consMatch;
+                    if (type === 'price') return priceMatch;
+                    return false;
+                });
+            }
+
+            const total = data.reduce((s,e) => s + parseFloat(e.price), 0);
+            document.getElementById('headerTotal').innerText = formatCurrency(total);
+
+            if(data.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8;">No records found.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(e => `
+                <div class="card" onclick="editEntry(${e.id})">
+                    <div class="card-row-1">
+                        <span class="card-title">${escapeHtml(e.item)}</span>
+                        <span class="card-price">${formatCurrency(e.price)}</span>
+                    </div>
+                    <div class="card-row-2">
+                        <div class="card-meta">
+                            <i class="far fa-calendar"></i>
+                            <span>${new Date(e.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
+                        </div>
+                        <div class="card-meta">
+                            <span class="pill">${escapeHtml(e.paidBy)}</span>
+                            <i class="fas fa-arrow-right" style="font-size:0.7rem"></i>
+                            <span style="max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(e.consumedBy)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- SUMMARY LOGIC ---
+        function openDateModal() {
+            document.getElementById('modalDateFilter').classList.add('active');
+        }
+
+        function applyDateFilter() {
+            const sVal = document.getElementById('sumStart').value;
+            const eVal = document.getElementById('sumEnd').value;
+            
+            if(sVal && eVal) {
+                summaryStartDate = new Date(sVal);
+                summaryEndDate = new Date(eVal);
+                summaryEndDate.setHours(23,59,59);
+                
+                const fmtStart = summaryStartDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                const fmtEnd = summaryEndDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                document.getElementById('currentRangeDisplay').innerText = `${fmtStart} - ${fmtEnd}`;
+                
+                calculateSummary();
+                closeModal('modalDateFilter');
+            } else {
+                alert("Please select both start and end dates");
+            }
+        }
+
+        function resetDates() {
+            document.getElementById('sumStart').value = new Date().toISOString().split('T')[0];
+            document.getElementById('sumEnd').value = new Date().toISOString().split('T')[0];
+            summaryStartDate = null;
+            summaryEndDate = null;
+            document.getElementById('currentRangeDisplay').innerText = "All Time";
+            calculateSummary();
+        }
+
+        function calculateSummary() {
+            let data = entries;
+            
+            if(summaryStartDate && summaryEndDate) {
+                data = entries.filter(x => { 
+                    const d = new Date(x.date); 
+                    return d >= summaryStartDate && d <= summaryEndDate; 
+                });
+            }
+
+            const paidTotals = {};
+            const consTotals = {};
+            
+            // Pairwise Debt Matrix: debts[Debtor][Creditor] = Amount
+            // This ensures strict relationships without ghost payers
+            const debts = {};
+
+            data.forEach(entry => {
+                const price = parseFloat(entry.price);
+                const payers = entry.paidBy.split(/[,&|]+/).map(n => cleanName(n)).filter(n=>n);
+                const consumers = entry.consumedBy.split(/[,&|]+/).map(n => cleanName(n)).filter(n=>n);
+                
+                if(payers.length === 0 || consumers.length === 0) return;
+
+                const amountPerPayer = price / payers.length;
+                const amountPerConsumer = price / consumers.length;
+
+                // 1. Populate Global Stats
+                payers.forEach(p => {
+                    paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer;
+                });
+                consumers.forEach(c => {
+                    consTotals[c] = (consTotals[c] || 0) + amountPerConsumer;
+                });
+
+                // 2. Populate Pairwise Debts
+                // Rule: Each Consumer owes Each Payer part of the bill
+                const debtPerPayer = amountPerConsumer / payers.length;
+
+                consumers.forEach(c => {
+                    payers.forEach(p => {
+                        if (c !== p) {
+                            if (!debts[c]) debts[c] = {};
+                            debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+                        }
+                    });
+                });
+            });
+
+            document.getElementById('paidArea').innerHTML = renderMap(paidTotals);
+            document.getElementById('consumedArea').innerHTML = renderMap(consTotals);
+
+            // 3. Simplify Pairwise Debts (Strictly A <-> B)
+            const settlements = [];
+            const people = Array.from(new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)]));
+
+            for (let i = 0; i < people.length; i++) {
+                for (let j = i + 1; j < people.length; j++) {
+                    const p1 = people[i];
+                    const p2 = people[j];
+
+                    // Check debt p1 -> p2
+                    const d1 = (debts[p1] && debts[p1][p2]) || 0;
+                    // Check debt p2 -> p1
+                    const d2 = (debts[p2] && debts[p2][p1]) || 0;
+
+                    const net = d1 - d2;
+                    if (net > 0.01) {
+                        settlements.push({ from: p1, to: p2, amt: net });
+                    } else if (net < -0.01) {
+                        settlements.push({ from: p2, to: p1, amt: -net });
+                    }
+                }
+            }
+
+            document.getElementById('settlementArea').innerHTML = settlements.length
+                ? settlements.map(s => `<div class="settle-item"><i class="fas fa-check-circle"></i> ${s.from} pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`).join('')
+                : `<div style="text-align:center; color:#94a3b8;">All Settled</div>`;
+        }
+
+        function renderMap(map) {
+            return Object.keys(map).sort().map(k => {
+                if(map[k] < 0.01) return '';
+                return `<div class="stat-row"><span>${k}</span><span>${formatCurrency(map[k])}</span></div>`;
+            }).join('') || '<div style="text-align:center; color:#ccc">-</div>';
+        }
+
+        // --- CSV IMPORT LOGIC ---
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                importCSV(text);
+                input.value = ""; // Reset
+            };
+            reader.readAsText(file);
+        }
+
+        function importCSV(csvText) {
+            const lines = csvText.split('\n');
+            let count = 0;
+            const startIndex = lines[0].toLowerCase().includes('date') ? 1 : 0;
+
+            for(let i=startIndex; i<lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g); 
+                const cols = matches ? matches.map(m => m.replace(/^"|"$/g, '')) : line.split(',');
+
+                if(cols.length >= 4) {
+                    const d = new Date(cols[0]);
+                    const item = cols[1] || "Imported Item";
+                    const price = parseFloat(cols[2]) || 0;
+                    const paidBy = cols[3] || "Unknown";
+                    const consumedBy = cols[4] || "Unknown";
+                    const desc = cols[5] || "";
+
+                    if(!isNaN(d.getTime()) && price > 0) {
+                        entries.push({
+                            id: Date.now() + count, 
+                            date: d.toISOString(),
+                            item: item.trim(),
+                            price: price,
+                            paidBy: cleanName(paidBy),
+                            consumedBy: consumedBy.split(/[,&|]+/).map(n=>cleanName(n)).join(', '),
+                            desc: desc.trim()
+                        });
+                        count++;
+                    }
+                }
+            }
+
+            if(count > 0) {
+                persist();
+                alert(`Successfully imported ${count} records!`);
+                renderList();
+            } else {
+                alert("Failed to import. Check CSV format.");
+            }
+        }
+
+        // --- CRUD (Existing) ---
+        function openEntryModal() {
+            document.getElementById('modalTitle').innerText = "Add Expense";
+            document.getElementById('entryId').value = "";
+            document.getElementById('inpDate').value = new Date().toISOString().slice(0,16);
+            document.getElementById('inpItem').value = "";
+            document.getElementById('inpPrice').value = "";
+            document.getElementById('inpPaid').value = "";
+            document.getElementById('inpConsumed').value = "";
+            document.getElementById('inpDesc').value = "";
+            document.getElementById('editTools').classList.add('hidden');
+            document.getElementById('modalEntry').classList.add('active');
+        }
+
+        function editEntry(id) {
+            const e = entries.find(x => x.id === id);
+            if(!e) return;
+            document.getElementById('modalTitle').innerText = "Edit Expense";
+            document.getElementById('entryId').value = e.id;
+            document.getElementById('inpDate').value = e.date.slice(0,16);
+            document.getElementById('inpItem').value = e.item;
+            document.getElementById('inpPrice').value = e.price;
+            document.getElementById('inpPaid').value = e.paidBy;
+            document.getElementById('inpConsumed').value = e.consumedBy;
+            document.getElementById('inpDesc').value = e.desc || "";
+            document.getElementById('editTools').classList.remove('hidden');
+            document.getElementById('modalEntry').classList.add('active');
+        }
+
+        function saveEntry() {
+            const id = document.getElementById('entryId').value;
+            const dateStr = document.getElementById('inpDate').value;
+            const item = document.getElementById('inpItem').value.trim();
+            const price = parseFloat(document.getElementById('inpPrice').value);
+            const paidRaw = document.getElementById('inpPaid').value;
+            const paidBy = paidRaw.split(/[,&|]+/).map(n => cleanName(n)).filter(n=>n).join(', ');
+            const consRaw = document.getElementById('inpConsumed').value;
+            const consumedBy = consRaw.split(/[,&|]+/).map(n => cleanName(n)).filter(n=>n).join(', ');
+            const desc = document.getElementById('inpDesc').value;
+
+            if(!dateStr || !item || isNaN(price) || !paidBy || !consumedBy) {
+                alert("Please fill in Date, Item, Price, and Names.");
+                return;
+            }
+
+            const obj = { id: id ? parseInt(id) : Date.now(), date: new Date(dateStr).toISOString(), item, price, paidBy, consumedBy, desc };
+
+            if(id) {
+                const idx = entries.findIndex(x => x.id == id);
+                if(idx > -1) entries[idx] = obj;
+            } else {
+                entries.push(obj);
+            }
+
+            persist();
+            closeModal('modalEntry');
+            renderList();
+        }
+
+        function deleteEntry() {
+            if(!confirm("Delete record?")) return;
+            const id = parseInt(document.getElementById('entryId').value);
+            entries = entries.filter(x => x.id !== id);
+            persist();
+            closeModal('modalEntry');
+            renderList();
+        }
+
+        function triggerCopy() { try{document.getElementById('copyDateInput').showPicker()}catch(e){document.getElementById('copyDateInput').click()} }
+        function finishCopy() {
+            const val = document.getElementById('copyDateInput').value;
+            if(!val) return;
+            const d = new Date(val); d.setHours(12,0,0);
+            const e = entries.find(x => x.id == document.getElementById('entryId').value);
+            if(e) {
+                const copy = {...e, id: Date.now(), date: d.toISOString()};
+                entries.push(copy);
+                persist();
+                alert("Copied!");
+                closeModal('modalEntry');
+                renderList();
+            }
+        }
+
+        // --- GOOGLE DRIVE & UTILS (Existing) ---
+        function checkGoogleLoaded() { if (typeof google !== 'undefined' && typeof gapi !== 'undefined') { gisLoaded(); gapiLoaded(); } else { setTimeout(checkGoogleLoaded, 500); } }
+        function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; updateDriveUI(); }); }
+        function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '', }); gisinited = true; updateDriveUI(); }
+        function updateDriveUI() { if(gapiInited && gisInited) { document.getElementById('syncStatus').innerText = "Ready to connect."; document.getElementById('driveControls').classList.remove('hidden'); document.getElementById('driveActions').classList.add('hidden'); } }
+        function handleAuthClick() { tokenClient.callback = async (resp) => { if (resp.error) throw resp; document.getElementById('syncStatus').innerHTML = '<span style="color:green">Connected to Drive</span>'; document.getElementById('syncStatus').classList.add('active'); document.getElementById('driveControls').classList.add('hidden'); document.getElementById('driveActions').classList.remove('hidden'); }; if (gapi.client.getToken() === null) { tokenClient.requestAccessToken({prompt: 'consent'}); } else { tokenClient.requestAccessToken({prompt: ''}); } }
+        async function backupToDrive() { try { const data = JSON.stringify(entries); const fileMetadata = { 'name': 'expense_manager_backup.json', 'mimeType': 'application/json' }; const q = "name = 'expense_manager_backup.json' and trashed = false"; const response = await gapi.client.drive.files.list({ q: q, fields: 'files(id, name)' }); const files = response.result.files; if (files && files.length > 0) { const fileId = files[0].id; await gapi.client.request({ path: '/upload/drive/v3/files/' + fileId, method: 'PATCH', params: { uploadType: 'media' }, body: data }); alert("Backup Updated Successfully!"); } else { const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(fileMetadata)], {type: 'application/json'})); form.append('file', new Blob([data], {type: 'application/json'})); await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: new Headers({'Authorization': 'Bearer ' + gapi.client.getToken().access_token}), body: form }); alert("Backup Created Successfully!"); } } catch (err) { console.error(err); alert("Backup failed. Check console."); } }
+        async function restoreFromDrive() { if(!confirm("This will overwrite current local data. Continue?")) return; try { const q = "name = 'expense_manager_backup.json' and trashed = false"; const response = await gapi.client.drive.files.list({ q: q, fields: 'files(id, name)' }); const files = response.result.files; if (files && files.length > 0) { const fileId = files[0].id; const result = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }); entries = result.result; if(typeof entries === 'string') entries = JSON.parse(entries); persist(); alert("Data restored!"); renderList(); } else { alert("No backup file found in Drive."); } } catch (err) { console.error(err); alert("Restore failed."); } }
+        
+        function persist() { localStorage.setItem('expense_data_v7', JSON.stringify(entries)); populateNames(); }
+        function populateNames() { const s = new Set(); entries.forEach(e => { e.paidBy.split(',').forEach(x=>s.add(x.trim())); e.consumedBy.split(',').forEach(x=>s.add(x.trim())); }); document.getElementById('namesList').innerHTML = [...s].map(n=>`<option value="${n}">`).join(''); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function escapeHtml(t) { return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+        function clearAllData() { if(confirm("Permanently delete all local data?")) { entries = []; persist(); renderList(); } }
+        function switchView(id) { document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); if(id==='list') { document.getElementById('viewList').classList.add('active'); document.getElementById('btnList').classList.add('active'); renderList(); } else if(id==='summary') { document.getElementById('viewSummary').classList.add('active'); document.getElementById('btnSum').classList.add('active'); calculateSummary(); } else { document.getElementById('viewSettings').classList.add('active'); document.getElementById('btnSet').classList.add('active'); } }
+        function openExportModal() { document.getElementById('modalExport').classList.add('active'); }
+        function executeExport(type) { const sVal = document.getElementById('expStart').value; const eVal = document.getElementById('expEnd').value; let data = entries; if(sVal && eVal) { const s=new Date(sVal); const e=new Date(eVal); e.setHours(23,59); data=entries.filter(x=>{const d=new Date(x.date); return d>=s && d<=e}); } let csv = "Date,Item,Price,PaidBy,ConsumedBy,Description\n"; data.forEach(r => csv += `${new Date(r.date).toLocaleDateString()},"${r.item}",${r.price},"${r.paidBy}","${r.consumedBy}","${r.desc||''}"\n`); const file = new File([csv], "expenses.csv", {type:'text/csv'}); if(type==='share' && navigator.canShare && navigator.canShare({files:[file]})) navigator.share({files:[file]}); else { const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download='expenses.csv'; a.click(); } closeModal('modalExport'); }
+    </script>
+</body>
+</html>
