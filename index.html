@@ -383,7 +383,7 @@
         const CURRENCY_SYMBOL = 'SR '; 
 
         // --- GOOGLE CONFIGURATION ---
-        const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; 
+        const _ID = '974172105806-e5erlmsl4tfp9n8pleuu8ii30vsru2il.apps.googleusercontent.com'; 
         const API_KEY = 'YOUR_API_KEY_HERE';
         
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -406,7 +406,7 @@
             document.getElementById('sumEnd').value = today;
             
             // Check if user filled in config
-            if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+            if (CLIENT_ID === '974172105806-e5erlmsl4tfp9n8pleuu8ii30vsru2il.apps.googleusercontent.com') {
                 document.getElementById('syncStatus').innerHTML = '⚠️ Setup Required: Add Client ID in code.';
             } else {
                 checkGoogleLoaded();
@@ -755,4 +755,5 @@
         function executeExport(type) { const sVal = document.getElementById('expStart').value; const eVal = document.getElementById('expEnd').value; let data = entries; if(sVal && eVal) { const s=new Date(sVal); const e=new Date(eVal); e.setHours(23,59); data=entries.filter(x=>{const d=new Date(x.date); return d>=s && d<=e}); } let csv = "Date,Item,Price,PaidBy,ConsumedBy,Description\n"; data.forEach(r => csv += `${new Date(r.date).toLocaleDateString()},"${r.item}",${r.price},"${r.paidBy}","${r.consumedBy}","${r.desc||''}"\n`); const file = new File([csv], "expenses.csv", {type:'text/csv'}); if(type==='share' && navigator.canShare && navigator.canShare({files:[file]})) navigator.share({files:[file]}); else { const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download='expenses.csv'; a.click(); } closeModal('modalExport'); }
     </script>
 </body>
+
 </html>
