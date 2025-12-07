@@ -405,12 +405,9 @@
             document.getElementById('sumStart').value = today;
             document.getElementById('sumEnd').value = today;
             
-            // Check if user filled in config
-            if (CLIENT_ID === '974172105806-e5erlmsl4tfp9n8pleuu8ii30vsru2il.apps.googleusercontent.com') {
-                document.getElementById('syncStatus').innerHTML = '⚠️ Setup Required: Add Client ID in code.';
-            } else {
+
                 checkGoogleLoaded();
-            }
+            
         });
 
         // --- CORE LOGIC ---
@@ -757,6 +754,7 @@
 </body>
 
 </html>
+
 
 
 
