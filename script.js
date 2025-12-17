@@ -149,6 +149,8 @@ function resetDates() {
 
 
 
+
+
 function calculateSummary() {
     let data = entries;
 
@@ -247,6 +249,7 @@ function calculateSummary() {
         groupIndex++;
     }
 }
+
 
 
 
