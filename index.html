@@ -1,235 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Expense Manager Pro</title>
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Identity Services (Async Load) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-    <link rel="stylesheet" href="style.css">
-    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Manager</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
 
-    <!-- LIST VIEW -->
-    <div id="viewList" class="view-section active">
-        <header>
-            <div class="header-top">
-                <div class="app-title">Expense Manager</div>
-                <div class="total-badge" id="headerTotal">SR 0.00</div>
-            </div>
-            <div class="search-container">
-                <select id="searchType" class="search-select" onchange="renderList()">
-                    <option value="all">All</option>
-                    <option value="item">Item</option>
-                    <option value="paid">Paid By</option>
-                    <option value="consumed">Consumed</option>
-                    <option value="price">SAR</option>
-                </select>
-                <div class="search-wrap">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeyup="renderList()">
-                </div>
-            </div>
-        </header>
-        <div id="listContainer" style="margin-top: 15px;"></div>
-    </div>
+<header>
+  <h1>Expense Manager</h1>
+  <div id="headerTotal">SR 0.00</div>
+</header>
 
-    <!-- SUMMARY VIEW -->
-    <div id="viewSummary" class="view-section">
-        <h2 style="margin: 0 0 15px 0;">Analysis</h2>
-        
-        <div class="section-box">
-            <div class="label">Time Period</div>
-            <div id="currentRangeDisplay" class="current-range">All Time</div>
-            
-            <button class="btn btn-primary" onclick="openDateModal()">Select Date Range</button>
-            <button class="btn btn-outline" onclick="resetDates()">Show All Time</button>
-        </div>
+<nav>
+  <button id="btnList" class="nav-item active" onclick="switchView('list')">List</button>
+  <button id="btnSum" class="nav-item" onclick="switchView('summary')">Summary</button>
+  <button id="btnSet" class="nav-item" onclick="switchView('settings')">Settings</button>
+</nav>
 
-        <div class="section-box">
-            <div class="box-header"><span>Settlement</span> <i class="fas fa-handshake" style="color:var(--success)"></i></div>
-            <div id="settlementArea"></div>
-        </div>
+<!-- ===================== LIST VIEW ===================== -->
+<section id="viewList" class="view-section active">
+  <div>
+    <input type="text" id="searchInput" placeholder="Search..." oninput="renderList()">
+    <select id="searchType" onchange="renderList()">
+      <option value="all">All</option>
+      <option value="item">Item</option>
+      <option value="paid">Paid By</option>
+      <option value="consumed">Consumed By</option>
+      <option value="price">Price</option>
+    </select>
+    <button onclick="openEntryModal()">+ Add Expense</button>
+    <button onclick="openExportModal()">Export</button>
+  </div>
+  <div id="listContainer"></div>
+</section>
 
-        <div class="section-box">
-            <div class="box-header">Who Paid</div>
-            <div id="paidArea"></div>
-        </div>
-        
-        <div class="section-box">
-            <div class="box-header">Who Consumed</div>
-            <div id="consumedArea"></div>
-        </div>
-    </div>
+<!-- ===================== SUMMARY VIEW ===================== -->
+<section id="viewSummary" class="view-section">
+  <div>
+    <button onclick="openDateModal()">Select Date Range</button>
+    <button onclick="resetDates()">Reset</button>
+    <span id="currentRangeDisplay">All Time</span>
+  </div>
+  <div id="paidArea"></div>
+  <div id="consumedArea"></div>
+  <div id="settlementArea"></div>
+</section>
 
-    <!-- SETTINGS / SYNC VIEW -->
-    <div id="viewSettings" class="view-section">
-        <h2 style="margin: 0 0 15px 0;">Data & Sync</h2>
+<!-- ===================== SETTINGS / GOOGLE DRIVE ===================== -->
+<section id="viewSettings" class="view-section">
+  <h2>Google Drive Backup / Restore</h2>
+  <div id="syncStatus">Loading...</div>
+  <div id="driveControls">
+    <button onclick="loginDrive()">Connect Google Drive</button>
+  </div>
+  <div id="driveActions" class="hidden">
+    <button onclick="backupToDrive()">Backup to Drive</button>
+    <button onclick="restoreFromDrive()">Restore from Drive</button>
+  </div>
+  <hr>
+  <h3>Local Data</h3>
+  <button onclick="clearAllData()">Delete All Local Data</button>
+</section>
 
-        <!-- Google Drive Section -->
-        <div class="section-box">
-            <div class="box-header"><span>Google Drive Backup</span> <i class="fab fa-google-drive" style="color:#4285F4"></i></div>
-            
-            <div id="syncStatus" class="sync-status">
-                <i class="fas fa-circle-notch fa-spin"></i> Initializing...
-            </div>
-
-            <div id="driveControls" class="hidden">
-                <button class="btn btn-google" onclick="handleAuthClick()">
-                    <i class="fab fa-google"></i> Connect Google Account
-                </button>
-            </div>
-
-            <div id="driveActions" class="hidden">
-                <button class="btn btn-primary" onclick="backupToDrive()">
-                    <i class="fas fa-cloud-upload-alt"></i> Backup to Drive
-                </button>
-                <button class="btn btn-outline" onclick="restoreFromDrive()">
-                    <i class="fas fa-cloud-download-alt"></i> Restore from Drive
-                </button>
-                <div style="margin-top:10px; font-size:0.8rem; color:#64748b; text-align:center;">
-                    File: expense_manager_backup.json
-                </div>
-            </div>
-        </div>
-
-        <!-- Local Data Section -->
-        <div class="section-box">
-            <div class="box-header">Local Data</div>
-            
-            <input type="file" id="importFile" accept=".csv" class="hidden" onchange="handleFileSelect(this)">
-            
-            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
-                <i class="fas fa-file-import"></i> Import CSV
-            </button>
-            
-            <button class="btn btn-outline" onclick="openExportModal()">
-                <i class="fas fa-file-csv"></i> Export CSV
-            </button>
-            
-            <button class="btn btn-danger" onclick="clearAllData()">
-                <i class="fas fa-trash-alt"></i> Clear All Data
-            </button>
-            
-            <div class="label" style="margin-top:10px; font-weight:400; text-align:center;">
-                Supports Import/Export for Excel/Sheets
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD/EDIT -->
-    <div class="modal-overlay" id="modalEntry">
-        <div class="modal">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="modalTitle" style="margin:0;">Expense</h3>
-                <i class="fas fa-times" onclick="closeModal('modalEntry')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
-            </div>
-            
-            <input type="hidden" id="entryId">
-            <div class="form-group">
-                <label class="label">Date</label>
-                <input type="datetime-local" id="inpDate" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">Item</label>
-                <input type="text" id="inpItem" class="input" placeholder="e.g. Dinner">
-            </div>
-            <div class="form-group">
-                <label class="label">Price (SR)</label>
-                <input type="number" id="inpPrice" class="input" placeholder="0.00" step="0.01">
-            </div>
-            <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1">
-                    <label class="label">Paid By</label>
-                    <input type="text" id="inpPaid" class="input" list="namesList" placeholder="Fahad, Asad">
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label class="label">Consumed By</label>
-                    <input type="text" id="inpConsumed" class="input" list="namesList" placeholder="Fahad, Asad, W...">
-                </div>
-            </div>
-            <div class="label" style="margin-top:-10px; margin-bottom:15px; font-weight:400; font-size:0.75rem;">
-                Tip: Separate multiple names with commas.
-            </div>
-
-            <div class="form-group">
-                <label class="label">Description</label>
-                <input type="text" id="inpDesc" class="input">
-            </div>
-
-            <button class="btn btn-primary" onclick="saveEntry()">Save Record</button>
-            
-            <div id="editTools" class="hidden" style="display:flex; gap:10px; margin-top:10px;">
-                <button class="btn btn-copy" onclick="triggerCopy()"><i class="fas fa-copy"></i> Copy</button>
-                <button class="btn btn-danger" onclick="deleteEntry()"><i class="fas fa-trash"></i> Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: DATE PICKER FOR SUMMARY -->
-    <div class="modal-overlay" id="modalDateFilter">
-        <div class="modal">
-            <h3>Select Date Range</h3>
-            <div class="form-group">
-                <label class="label">From</label>
-                <input type="date" id="sumStart" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">To</label>
-                <input type="date" id="sumEnd" class="input">
-            </div>
-            <button class="btn btn-primary" onclick="applyDateFilter()">Apply Filter</button>
-            <button class="btn btn-outline" onclick="closeModal('modalDateFilter')">Cancel</button>
-        </div>
-    </div>
-
-    <!-- MODAL: EXPORT -->
-    <div class="modal-overlay" id="modalExport">
-        <div class="modal">
-            <h3>Export Data</h3>
-            <div class="form-group">
-                <label class="label">From</label>
-                <input type="date" id="expStart" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">To</label>
-                <input type="date" id="expEnd" class="input">
-            </div>
-            <button class="btn btn-primary" onclick="executeExport('csv')">Download CSV</button>
-            <button class="btn btn-copy" onclick="executeExport('share')">Share File</button>
-            <button class="btn btn-outline" onclick="closeModal('modalExport')">Cancel</button>
-        </div>
-    </div>
-
-    <input type="date" id="copyDateInput" class="picker-hidden" onchange="finishCopy()">
+<!-- ===================== ENTRY MODAL ===================== -->
+<div id="modalEntry" class="modal">
+  <div class="modal-content">
+    <h3 id="modalTitle">Add Expense</h3>
+    <input type="hidden" id="entryId">
+    <label>Date:</label><input type="datetime-local" id="inpDate">
+    <label>Item:</label><input type="text" id="inpItem">
+    <label>Price:</label><input type="number" id="inpPrice" step="0.01">
+    <label>Paid By:</label><input type="text" id="inpPaid" list="namesList">
+    <label>Consumed By:</label><input type="text" id="inpConsumed" list="namesList">
+    <label>Description:</label><textarea id="inpDesc"></textarea>
     <datalist id="namesList"></datalist>
-    <button class="fab" onclick="openEntryModal()"><i class="fas fa-plus"></i></button>
+    <div id="editTools" class="hidden">
+      <button onclick="deleteEntry()">Delete</button>
+      <button onclick="finishCopy()">Copy</button>
+    </div>
+    <button onclick="saveEntry()">Save</button>
+    <button onclick="closeModal('modalEntry')">Cancel</button>
+  </div>
+</div>
 
-    <!-- NAV -->
-    <nav class="bottom-nav">
-        <button class="nav-item active" onclick="switchView('list')" id="btnList">
-            <i class="fas fa-list"></i> <span>Records</span>
-        </button>
-        <button class="nav-item" onclick="switchView('summary')" id="btnSum">
-            <i class="fas fa-chart-pie"></i> <span>Summary</span>
-        </button>
-        <button class="nav-item" onclick="switchView('settings')" id="btnSet">
-            <i class="fas fa-cloud"></i> <span>Sync</span>
-        </button>
-    </nav>
-    <script src="script.js"></script>
+<!-- ===================== DATE MODAL ===================== -->
+<div id="modalDateFilter" class="modal">
+  <div class="modal-content">
+    <h3>Select Date Range</h3>
+    <label>Start:</label><input type="date" id="sumStart">
+    <label>End:</label><input type="date" id="sumEnd">
+    <button onclick="applyDateFilter()">Apply</button>
+    <button onclick="closeModal('modalDateFilter')">Cancel</button>
+  </div>
+</div>
 
+<!-- ===================== EXPORT MODAL ===================== -->
+<div id="modalExport" class="modal">
+  <div class="modal-content">
+    <h3>Export CSV</h3>
+    <label>Start:</label><input type="date" id="expStart">
+    <label>End:</label><input type="date" id="expEnd">
+    <button onclick="executeExport('download')">Download</button>
+    <button onclick="executeExport('share')">Share</button>
+    <button onclick="closeModal('modalExport')">Cancel</button>
+  </div>
+</div>
 
-    
+<script src="script.js"></script>
 </body>
-
 </html>
-
-
-
-
