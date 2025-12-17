@@ -456,27 +456,14 @@ function updateDriveUI() {
 }
 
 
- function handleAuthClick() {
-     tokenClient.callback = async (resp) => {
-         if (resp.error) throw resp;
-            localStorage.setItem(DRIVE_LOGIN_KEY, '1');
-            document.getElementById('syncStatus').innerHTML =
-            '<span style="color:green">Connected to Drive</span>';
-            document.getElementById('syncStatus').classList.add('active');
-            document.getElementById('driveControls').classList.add('hidden');
-            document.getElementById('driveActions').classList.remove('hidden');
+function handleAuthClick() {
+    if (gapi.client.getToken() === null) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        tokenClient.requestAccessToken({ prompt: '' });
+    }
+}
 
-     };
-     if (gapi.client.getToken() === null) {
-         tokenClient.requestAccessToken({
-             prompt: 'consent'
-         });
-     } else {
-         tokenClient.requestAccessToken({
-             prompt: ''
-         });
-     }
- }
  async function backupToDrive() {
      try {
          const data = JSON.stringify(entries);
