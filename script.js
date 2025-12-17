@@ -148,6 +148,7 @@ function resetDates() {
 function calculateSummary() {
     let data = entries;
 
+    // Filter by selected summary dates
     if (summaryStartDate && summaryEndDate) {
         data = entries.filter(x => {
             const d = new Date(x.date);
@@ -157,52 +158,92 @@ function calculateSummary() {
 
     const paidTotals = {};
     const consTotals = {};
-    const debts = {};
 
+    // 1️⃣ Group entries by unique payer-consumer combination
+    const groups = {}; // key: "Paid by [...] | Consumed by [...]"
     data.forEach(entry => {
+        const payers = entry.paidBy.split(',').map(n => cleanName(n)).filter(n => n).sort().join(',');
+        const consumers = entry.consumedBy.split(',').map(n => cleanName(n)).filter(n => n).sort().join(',');
+        const groupKey = `Paid by [${payers}] | Consumed by [${consumers}]`;
+
+        if (!groups[groupKey]) groups[groupKey] = [];
+        groups[groupKey].push(entry);
+
+        // 2️⃣ Populate global paid/consumed totals
         const price = parseFloat(entry.price);
-        const payers = entry.paidBy.split(/[,&|]+/).map(cleanName).filter(n => n);
-        const consumers = entry.consumedBy.split(/[,&|]+/).map(cleanName).filter(n => n);
-        if (payers.length === 0 || consumers.length === 0) return;
+        const amountPerPayer = price / (payers.split(',').length || 1);
+        const amountPerConsumer = price / (consumers.split(',').length || 1);
 
-        const amountPerPayer = price / payers.length;
-        const amountPerConsumer = price / consumers.length;
-
-        payers.forEach(p => { paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer; });
-        consumers.forEach(c => { consTotals[c] = (consTotals[c] || 0) + amountPerConsumer; });
-
-        const debtPerPayer = amountPerConsumer / payers.length;
-        consumers.forEach(c => {
-            payers.forEach(p => {
-                if (c !== p) {
-                    if (!debts[c]) debts[c] = {};
-                    debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
-                }
-            });
-        });
+        payers.split(',').forEach(p => { paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer; });
+        consumers.split(',').forEach(c => { consTotals[c] = (consTotals[c] || 0) + amountPerConsumer; });
     });
 
+    // Render global paid/consumed totals
     document.getElementById('paidArea').innerHTML = renderMap(paidTotals);
     document.getElementById('consumedArea').innerHTML = renderMap(consTotals);
 
-    // Simplify pairwise debts
-    const settlements = [];
-    const people = Array.from(new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)]));
-    for (let i = 0; i < people.length; i++) {
-        for (let j = i + 1; j < people.length; j++) {
-            const p1 = people[i], p2 = people[j];
-            const d1 = (debts[p1] && debts[p1][p2]) || 0;
-            const d2 = (debts[p2] && debts[p2][p1]) || 0;
-            const net = d1 - d2;
-            if (net > 0.01) settlements.push({from: p1, to: p2, amt: net});
-            else if (net < -0.01) settlements.push({from: p2, to: p1, amt: -net});
-        }
-    }
+    // 3️⃣ Calculate and render settlements per group
+    const container = document.getElementById('settlementArea');
+    container.innerHTML = '';
+    let groupIndex = 1;
 
-    document.getElementById('settlementArea').innerHTML = settlements.length ?
-        settlements.map(s => `<div class="settle-item"><i class="fas fa-check-circle"></i> ${s.from} pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`).join('') :
-        `<div style="text-align:center; color:#94a3b8;">All Settled</div>`;
+    for (const gKey in groups) {
+        const gEntries = groups[gKey];
+        const debts = {};
+
+        // Calculate pairwise debts within this group
+        gEntries.forEach(entry => {
+            const price = parseFloat(entry.price);
+            const payers = entry.paidBy.split(',').map(n => cleanName(n)).filter(n => n);
+            const consumers = entry.consumedBy.split(',').map(n => cleanName(n)).filter(n => n);
+            if (!payers.length || !consumers.length) return;
+
+            const amountPerConsumer = price / consumers.length;
+            const debtPerPayer = amountPerConsumer / payers.length;
+
+            consumers.forEach(c => {
+                payers.forEach(p => {
+                    if (c !== p) {
+                        if (!debts[c]) debts[c] = {};
+                        debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+                    }
+                });
+            });
+        });
+
+        // Simplify debts inside group
+        const settlements = [];
+        const people = Array.from(new Set([].concat(
+            ...gEntries.map(e => e.paidBy.split(',')),
+            ...gEntries.map(e => e.consumedBy.split(','))
+        )));
+
+        for (let i = 0; i < people.length; i++) {
+            for (let j = i + 1; j < people.length; j++) {
+                const p1 = people[i];
+                const p2 = people[j];
+                const d1 = (debts[p1] && debts[p1][p2]) || 0;
+                const d2 = (debts[p2] && debts[p2][p1]) || 0;
+                const net = d1 - d2;
+                if (net > 0.01) settlements.push({ from: p1, to: p2, amt: net });
+                else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
+            }
+        }
+
+        // Render this group
+        container.innerHTML += `<div class="group-title">Group ${groupIndex}: ${gKey}</div>`;
+        if (settlements.length) {
+            container.innerHTML += settlements.map(s =>
+                `<div class="settle-item"><i class="fas fa-check-circle"></i> ${s.from} pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`
+            ).join('');
+        } else {
+            container.innerHTML += `<div style="text-align:center; color:#94a3b8;">All Settled</div>`;
+        }
+
+        groupIndex++;
+    }
 }
+
 
 // =====================
 // --- CRUD FUNCTIONS ---
