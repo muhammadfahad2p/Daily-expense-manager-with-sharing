@@ -488,7 +488,7 @@ function gapiLoaded() {
             await gapi.client.init({apiKey: API_KEY, discoveryDocs:[DISCOVERY_DOC]});
             gapiInited=true;
             updateDriveUI();
-        } catch(e){ console.error(e); alert("Failed to load Google API."); }
+        } catch(e){ console.error(e); }
     });
 }
 
