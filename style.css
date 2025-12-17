@@ -186,3 +186,44 @@
     background-color: #f0f9ff;
 }
 
+
+/* Settlement Groups */
+.group {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f3f4f6; /* light gray background for each group */
+    border: 1px solid #e5e7eb;
+}
+
+.group-title {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #1f2937; /* dark text for title */
+    background-color: #dbeafe; /* light blue background for title */
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.settle-item {
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    background-color: #ffffff; /* white background for each settlement */
+    border: 1px solid #cbd5e1; /* subtle border */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settle-item i {
+    color: #10b981; /* green check icon */
+}
+
+.settle-item b {
+    margin-left: auto; /* pushes the amount to the right */
+    color: #ef4444; /* red for amount */
+}
+
+
