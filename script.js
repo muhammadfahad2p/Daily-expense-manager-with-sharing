@@ -188,41 +188,75 @@ function calculateSummary() {
                 }
             });
         });
+    });function calculateSummary() {
+    let data = entries;
+
+    if (summaryStartDate && summaryEndDate) {
+        data = entries.filter(x => {
+            const d = new Date(x.date);
+            return d >= summaryStartDate && d <= summaryEndDate;
+        });
+    }
+
+    const groupMap = {}; // { "payerKey|consumerKey": [entries] }
+
+    data.forEach(entry => {
+        const payers = entry.paidBy.split(',').map(n => cleanName(n)).filter(n => n);
+        const consumers = entry.consumedBy.split(',').map(n => cleanName(n)).filter(n => n);
+
+        if (!payers.length || !consumers.length) return; // skip invalid
+
+        const payerKey = payers.join(', ');
+        const consumerKey = consumers.join(', ');
+
+        const groupKey = `${payerKey}|${consumerKey}`; // unique group key
+
+        if (!groupMap[groupKey]) groupMap[groupKey] = [];
+        groupMap[groupKey].push(entry);
     });
 
-    document.getElementById('paidArea').innerHTML = renderMap(paidTotals);
-    document.getElementById('consumedArea').innerHTML = renderMap(consTotals);
+    let groupIndex = 1;
+    const settlementHtml = [];
 
-    // --- Group by Consumers ---
-    const groupMap = {}; // key = sorted consumers, value = array of settlements
-    const people = Array.from(new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)]));
+    for (const [key, entries] of Object.entries(groupMap)) {
+        const [payerKey, consumerKey] = key.split('|');
+        settlementHtml.push(`<div class="group-title">Group ${groupIndex} - Paid by: ${payerKey}, Consumed by: ${consumerKey}</div>`);
 
-    for (let i = 0; i < people.length; i++) {
-        for (let j = i + 1; j < people.length; j++) {
-            const p1 = people[i];
-            const p2 = people[j];
-            const d1 = (debts[p1] && debts[p1][p2]) || 0;
-            const d2 = (debts[p2] && debts[p2][p1]) || 0;
-            const net = d1 - d2;
+        const debts = {};
 
-            if (Math.abs(net) < 0.01) continue;
+        entries.forEach(e => {
+            const price = parseFloat(e.price);
+            const payers = e.paidBy.split(',').map(n => cleanName(n)).filter(n => n);
+            const consumers = e.consumedBy.split(',').map(n => cleanName(n)).filter(n => n);
 
-            const from = net > 0 ? p1 : p2;
-            const to = net > 0 ? p2 : p1;
-            const amt = Math.abs(net);
+            const amountPerConsumer = price / consumers.length;
+            const debtPerPayer = amountPerConsumer / payers.length;
 
-            // Group key by consumers
-            const consumers = data
-                .filter(e => e.paidBy.split(/[,&|]+/).map(n => cleanName(n)).includes(from) &&
-                             e.consumedBy.split(/[,&|]+/).map(n => cleanName(n)).includes(to))
-                .flatMap(e => e.consumedBy.split(/[,&|]+/).map(n => cleanName(n)))
-                .sort();
-            const key = consumers.join(', ');
+            consumers.forEach(c => {
+                payers.forEach(p => {
+                    if (c !== p) {
+                        if (!debts[c]) debts[c] = {};
+                        debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+                    }
+                });
+            });
+        });
 
-            if (!groupMap[key]) groupMap[key] = [];
-            groupMap[key].push({ from, to, amt });
-        }
+        // Render debts for this group
+        const debtsHtml = [];
+        Object.keys(debts).forEach(c => {
+            Object.keys(debts[c]).forEach(p => {
+                debtsHtml.push(`<div class="settle-item">${c} pays ${p} <b>${formatCurrency(debts[c][p])}</b></div>`);
+            });
+        });
+
+        settlementHtml.push(debtsHtml.join(''));
+        groupIndex++;
     }
+
+    document.getElementById('settlementArea').innerHTML = settlementHtml.join('');
+}
+
 
     // Render grouped settlements
     let html = '';
