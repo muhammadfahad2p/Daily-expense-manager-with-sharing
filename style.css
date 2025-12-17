@@ -153,38 +153,6 @@
             margin-bottom: 12px; padding: 8px; background: #eff6ff; border-radius: 8px;
         }
 
-/* --- Settlement Groups --- */
-#settlementArea .group-title {
-    font-weight: bold;
-    font-size: 1rem;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    padding: 0.3rem 0.5rem;
-    background-color: #3b82f6; /* Blue background for group title */
-    color: #fff;
-    border-radius: 5px;
-}
-
-#settlementArea .settle-item {
-    margin-left: 1rem;
-    margin-bottom: 0.3rem;
-    padding: 0.3rem 0.5rem;
-    background-color: #e0f2fe; /* Light blue for settlements */
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.95rem;
-}
-
-#settlementArea .settle-item i {
-    color: #10b981; /* green check icon */
-}
-
-/* Optional: Alternate group background for readability */
-#settlementArea .group:nth-child(even) .settle-item {
-    background-color: #f0f9ff;
-}
 
 
 
