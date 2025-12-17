@@ -6,7 +6,8 @@ const CURRENCY_SYMBOL = 'SR ';
 
 const CLIENT_ID = '974172105806-e5erlmsl4tfp9n8pleuu8ii30vsru2il.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyA1Dqn0hzNXUZYCpBAKOFKgUr5QhWlBM';
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest?fields=kind,discoveryVersion,version';
+
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 let entries = JSON.parse(localStorage.getItem('expense_data_v7')) || [];
