@@ -420,15 +420,22 @@ function disconnectDrive() {
      });
  }
 
- function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (resp) => console.log('Token callback', resp),
-    });
-     gisInited = true;
-     updateDriveUI();
- }
+tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (tokenResponse) => {
+        if (tokenResponse.error) {
+            console.error(tokenResponse);
+            alert('Drive login failed.');
+            return;
+        }
+        document.getElementById('syncStatus').innerHTML =
+            '<span style="color:green">Connected to Drive</span>';
+        document.getElementById('driveControls').classList.add('hidden');
+        document.getElementById('driveActions').classList.remove('hidden');
+    },
+});
+
 
 function updateDriveUI() {
     if (!gapiInited || !gisInited) return;
