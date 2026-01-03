@@ -98,6 +98,16 @@ document.addEventListener('DOMContentLoaded', () => {
   checkGoogleLoaded();
 });
 
+function trySilentReconnect() {
+  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === "1";
+  if (!wasConnected || !tokenClient) return;
+
+  // Try silent auth first (no popup)
+  tokenClient.requestAccessToken({ prompt: "" });
+}
+
+
+
 // =====================
 // --- RENDERING FUNCTIONS ---
 // =====================
@@ -721,6 +731,9 @@ function gisLoaded() {
 
   gisInited = true;
   updateDriveUI();
+  // Attempt silent reconnect on refresh if user connected before
+trySilentReconnect();
+
 }
 
 function updateDriveUI() {
@@ -747,8 +760,12 @@ async function loginDrive() {
     alert("Google sign-in is not ready yet. Refresh and try again.");
     return;
   }
-  // Force account picker on mobile so user sees the dialog
-  tokenClient.requestAccessToken({ prompt: 'select_account' });
+
+  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === "1";
+
+  // If user connected before, try normal prompt first (less annoying).
+  // If it fails, user can tap again and it will show chooser.
+  tokenClient.requestAccessToken({ prompt: wasConnected ? "" : "select_account" });
 }
 
 async function findLatestBackupFileId(token) {
