@@ -28,6 +28,7 @@
                     <option value="item">Item</option>
                     <option value="paid">Paid By</option>
                     <option value="consumed">Consumed</option>
+                    <option value="group">Group</option>
                     <option value="price">SAR</option>
                 </select>
                 <div class="search-wrap">
@@ -35,6 +36,11 @@
                     <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeyup="renderList()">
                 </div>
             </div>
+        
+                <select id="listGroupFilter" class="search-select" style="max-width:140px;" onchange="renderList()">
+                    <option value="__all__">All Groups</option>
+                </select>
+
         </header>
         <div id="listContainer" style="margin-top: 15px;"></div>
     </div>
@@ -47,7 +53,12 @@
             <div class="label">Time Period</div>
             <div id="currentRangeDisplay" class="current-range">All Time</div>
             
-            <button class="btn btn-primary" onclick="openDateModal()">Select Date Range</button>
+            
+            <div class="label" style="margin-top:10px;">Group</div>
+            <select id="summaryGroupFilter" class="search-select" style="max-width:100%; width:100%;" onchange="calculateSummary()">
+                <option value="__all__">All Groups</option>
+            </select>
+<button class="btn btn-primary" onclick="openDateModal()">Select Date Range</button>
             <button class="btn btn-outline" onclick="resetDates()">Show All Time</button>
         </div>
 
@@ -98,7 +109,19 @@
             </div>
         </div>
 
-        <!-- Local Data Section -->
+        
+        <!-- Templates Section -->
+        <div class="section-box">
+            <div class="box-header">Templates</div>
+            <button class="btn btn-outline" onclick="openTemplatesModal()">
+                <i class="fas fa-layer-group"></i> Manage Templates
+            </button>
+            <div class="label" style="margin-top:10px; font-weight:400; text-align:center;">
+                Save frequent entries as templates for quick adding.
+            </div>
+        </div>
+
+<!-- Local Data Section -->
         <div class="section-box">
             <div class="box-header">Local Data</div>
             
@@ -143,7 +166,12 @@
                 <label class="label">Price (SR)</label>
                 <input type="number" id="inpPrice" class="input" placeholder="0.00" step="0.01">
             </div>
-            <div style="display:flex; gap:10px;">
+            
+            <div class="form-group">
+                <label class="label">Group</label>
+                <input type="text" id="inpGroup" class="input" list="groupsList" placeholder="e.g. Roommate, Office, Trip">
+            </div>
+<div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1">
                     <label class="label">Paid By</label>
                     <input type="text" id="inpPaid" class="input" list="namesList" placeholder="Fahad, Asad">
@@ -206,8 +234,48 @@
         </div>
     </div>
 
-    <input type="date" id="copyDateInput" class="picker-hidden" onchange="finishCopy()">
+
+    <!-- MODAL: COPY DATE -->
+    <div class="modal-overlay" id="modalCopyDate">
+        <div class="modal">
+            <h3>Copy Record</h3>
+            <div class="form-group">
+                <label class="label">Select Date</label>
+                <input type="date" id="copyDatePicker" class="input">
+            </div>
+            <button class="btn btn-primary" onclick="confirmCopyWithDate()">Create Copy</button>
+            <button class="btn btn-outline" onclick="closeModal('modalCopyDate')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- MODAL: TEMPLATE MANAGER -->
+    <div class="modal-overlay" id="modalTemplates">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">Templates</h3>
+                <i class="fas fa-times" onclick="closeModal('modalTemplates')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
+            </div>
+
+            <div class="form-group">
+                <label class="label">Add Template Name</label>
+                <input type="text" id="tplName" class="input" placeholder="e.g. Lunch, Petrol">
+            </div>
+            <button class="btn btn-primary" onclick="saveCurrentAsTemplate()">
+                <i class="fas fa-plus"></i> Save Current Entry as Template
+            </button>
+
+            <div style="margin-top:15px;">
+                <div class="label" style="margin-bottom:8px;">Saved Templates</div>
+                <div id="templatesList" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <button class="btn btn-outline" style="margin-top:15px;" onclick="closeModal('modalTemplates')">Close</button>
+        </div>
+    </div>
+
+ 
     <datalist id="namesList"></datalist>
+    <datalist id="groupsList"></datalist>
     <button class="fab" onclick="openEntryModal()"><i class="fas fa-plus"></i></button>
 
     <!-- NAV -->

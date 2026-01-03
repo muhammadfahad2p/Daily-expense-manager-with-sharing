@@ -35,7 +35,7 @@
         .app-title { font-weight: 700; font-size: 1.2rem; }
         .total-badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; }
         
-        .search-container { display: flex; gap: 8px; }
+        .search-container { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .search-select {
             padding: 0 10px; border: none; border-radius: 12px;
             background: white; color: var(--text); font-size: 0.9rem;
@@ -152,8 +152,3 @@
             text-align: center; font-size: 0.9rem; color: var(--primary); font-weight: 600; 
             margin-bottom: 12px; padding: 8px; background: #eff6ff; border-radius: 8px;
         }
-
-
-
-
-

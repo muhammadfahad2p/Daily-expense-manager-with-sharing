@@ -1,0 +1,9 @@
+{
+  "name": "Expense Manager Pro",
+  "short_name": "Expenses",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1f6feb",
+  "icons": []
+}
