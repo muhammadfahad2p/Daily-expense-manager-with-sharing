@@ -32,7 +32,13 @@ let summaryStartDate = null;
 let summaryEndDate = null;
 
 // Summary group filter (string or "__all__")
-let summaryGroup = '__all__';
+let summaryGroup = '__all__';// =====================
+// --- LIST PERIOD STATE ---
+// =====================
+let listPeriod = 'daily'; // 'daily' | 'monthly' | 'yearly'
+let listCursor = new Date(); // controls which day/month/year is shown
+
+const NAMES_KEY = 'expense_names_v1';
 
 // =====================
 // --- UTILITY FUNCTIONS ---
@@ -78,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const connectBtn = document.querySelector('#driveControls button');
   if (connectBtn) connectBtn.addEventListener('click', (e) => { e.preventDefault(); handleAuthClick(); });
 
+  mergeNamesFromEntries();
   renderList();
   populateNamesAndGroups();
   refreshSummaryGroupDropdown();
@@ -98,23 +105,296 @@ document.addEventListener('DOMContentLoaded', () => {
   checkGoogleLoaded();
 });
 
-function trySilentReconnect() {
-  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === "1";
-  if (!wasConnected || !tokenClient) return;
-
-  // Try silent auth first (no popup)
-  tokenClient.requestAccessToken({ prompt: "" });
-}
-
-
-
 // =====================
 // --- RENDERING FUNCTIONS ---
 // =====================
+function startOfDay(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0);
+}
+function endOfDay(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999);
+}
+function startOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0,0,0,0);
+}
+function endOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 0, 23,59,59,999);
+}
+function startOfYear(d){
+  return new Date(d.getFullYear(), 0, 1, 0,0,0,0);
+}
+function endOfYear(d){
+  return new Date(d.getFullYear(), 11, 31, 23,59,59,999);
+}
+
+function getListPeriodBounds(){
+  if (listPeriod === 'monthly'){
+    return { start: startOfMonth(listCursor), end: endOfMonth(listCursor) };
+  }
+  if (listPeriod === 'yearly'){
+    return { start: startOfYear(listCursor), end: endOfYear(listCursor) };
+  }
+  return { start: startOfDay(listCursor), end: endOfDay(listCursor) };
+}
+
+function updateDateStrip(balanceAmount){
+  const dayEl = document.getElementById('listDayNumber');
+  const monthEl = document.getElementById('listMonthYear');
+  const wkEl = document.getElementById('listWeekday');
+  const balEl = document.getElementById('listBalance');
+  if (!dayEl || !monthEl || !wkEl || !balEl) return; // header UI not present
+
+  const d = new Date(listCursor);
+  if (listPeriod === 'daily'){
+    dayEl.textContent = String(d.getDate()).padStart(2,'0');
+    monthEl.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+    wkEl.textContent = d.toLocaleDateString(undefined, { weekday:'long' });
+  } else if (listPeriod === 'monthly'){
+    dayEl.textContent = String(d.getMonth()+1).padStart(2,'0');
+    monthEl.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+    wkEl.textContent = 'Monthly';
+  } else {
+    const yy = String(d.getFullYear()).slice(-2);
+    dayEl.textContent = yy;
+    monthEl.textContent = 'Year ' + d.getFullYear();
+    wkEl.textContent = 'Yearly';
+  }
+
+  balEl.textContent = formatCurrency(balanceAmount || 0);
+}
+
+function setListPeriod(period){
+  listPeriod = period;
+  // update tab UI
+  document.querySelectorAll('.period-tab').forEach(b => {
+    b.classList.toggle('active', (b.dataset.period === period));
+  });
+  // keep cursor valid
+  listCursor = new Date(listCursor || new Date());
+  renderList();
+}
+
+function shiftListDate(delta){
+  const d = new Date(listCursor);
+  if (listPeriod === 'monthly'){
+    d.setMonth(d.getMonth() + delta);
+  } else if (listPeriod === 'yearly'){
+    d.setFullYear(d.getFullYear() + delta);
+  } else {
+    d.setDate(d.getDate() + delta);
+  }
+  listCursor = d;
+  renderList();
+}
+
+function openListDatePicker(){
+  if (listPeriod === 'daily'){
+    const inp = document.getElementById('listDatePicker');
+    if (!inp) return;
+    inp.value = startOfDay(listCursor).toISOString().slice(0,10);
+    inp.click();
+    return;
+  }
+  if (listPeriod === 'monthly'){
+    openMonthPicker();
+    return;
+  }
+  // yearly: quick prompt
+  const y = prompt('Enter year (e.g. 2026):', String(listCursor.getFullYear()));
+  if (!y) return;
+  const yr = parseInt(y, 10);
+  if (!isNaN(yr) && yr >= 1900 && yr <= 2100){
+    const d = new Date(listCursor);
+    d.setFullYear(yr);
+    listCursor = d;
+    renderList();
+  }
+}
+
+function onListDatePicked(val){
+  if (!val) return;
+  const [yy,mm,dd] = val.split('-').map(x => parseInt(x,10));
+  if (!yy || !mm || !dd) return;
+  listCursor = new Date(yy, mm-1, dd, 12, 0, 0, 0);
+  renderList();
+}
+
+// =====================
+// --- MONTH PICKER ---
+// =====================
+let monthPickerYear = new Date().getFullYear();
+function openMonthPicker(){
+  monthPickerYear = listCursor.getFullYear();
+  renderMonthPicker();
+  const modal = document.getElementById('modalMonthPicker');
+  if (modal) modal.classList.add('active');
+}
+function shiftMonthPicker(deltaYears){
+  monthPickerYear += deltaYears;
+  renderMonthPicker();
+}
+function renderMonthPicker(){
+  const yearEl = document.getElementById('monthPickerYear');
+  const grid = document.getElementById('monthGrid');
+  if (!yearEl || !grid) return;
+  yearEl.textContent = String(monthPickerYear);
+  const activeMonth = listCursor.getMonth();
+  const activeYear = listCursor.getFullYear();
+  const months = Array.from({length:12}, (_,i) => new Date(2000, i, 1).toLocaleDateString(undefined, { month:'short' }));
+  grid.innerHTML = months.map((m,i) => {
+    const active = (activeYear === monthPickerYear && activeMonth === i) ? 'active' : '';
+    return `<button class="month-btn ${active}" type="button" onclick="pickMonth(${i})">${m}</button>`;
+  }).join('');
+}
+function pickMonth(monthIdx){
+  const d = new Date(listCursor);
+  d.setFullYear(monthPickerYear);
+  d.setMonth(monthIdx);
+  listCursor = d;
+  closeModal('modalMonthPicker');
+  renderList();
+}
+
+// =====================
+// --- NAMES CATALOG (Paid/Consumed dropdowns) ---
+// =====================
+function loadNamesCatalog(){
+  try{
+    const raw = localStorage.getItem(NAMES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(Boolean).map(cleanPersonName) : [];
+  }catch{
+    return [];
+  }
+}
+function saveNamesCatalog(arr){
+  const uniq = Array.from(new Set((arr||[]).map(cleanPersonName).filter(Boolean))).sort();
+  localStorage.setItem(NAMES_KEY, JSON.stringify(uniq));
+  renderNameDropdownLists();
+}
+function mergeNamesFromEntries(){
+  const names = new Set(loadNamesCatalog());
+  entries.forEach(e => {
+    (e.paidBy || '').split(',').forEach(x => { const v = cleanPersonName(x); if (v) names.add(v); });
+    (e.consumedBy || '').split(',').forEach(x => { const v = cleanPersonName(x); if (v) names.add(v); });
+  });
+  saveNamesCatalog([...names]);
+}
+function addNameFromInput(which){
+  const inp = document.getElementById(which === 'paid' ? 'paidNewName' : 'consumedNewName');
+  if (!inp) return;
+  const name = cleanPersonName(inp.value || '');
+  if (!name) return;
+  const names = loadNamesCatalog();
+  names.push(name);
+  saveNamesCatalog(names);
+  inp.value = '';
+}
+
+function toggleNameDropdown(which, forceClose=false){
+  const panelId = which === 'paid' ? 'paidPanel' : 'consumedPanel';
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const isOpen = !panel.classList.contains('hidden');
+  if (forceClose || isOpen){
+    panel.classList.add('hidden');
+    return;
+  }
+  // close the other
+  const other = document.getElementById(which === 'paid' ? 'consumedPanel' : 'paidPanel');
+  if (other) other.classList.add('hidden');
+  renderNameDropdownLists();
+  panel.classList.remove('hidden');
+}
+
+function renderNameDropdownLists(){
+  const names = loadNamesCatalog();
+
+  // Paid (radio)
+  const paidList = document.getElementById('paidList');
+  const paidHidden = document.getElementById('inpPaid');
+  const paidDisplay = document.getElementById('paidDisplay');
+  if (paidList && paidHidden && paidDisplay){
+    const selected = cleanPersonName(paidHidden.value || '');
+    paidList.innerHTML = names.map(n => {
+      const checked = (cleanPersonName(n) === selected) ? 'checked' : '';
+      return `
+        <label class="name-opt" onclick="selectPaidName('${escapeHtml(n)}')">
+          <span class="left">
+            <input type="radio" name="paidRadio" ${checked} />
+            <span class="lbl">${escapeHtml(n)}</span>
+          </span>
+        </label>
+      `;
+    }).join('') || '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
+    paidDisplay.textContent = selected || 'Select / Add';
+  }
+
+  // Consumed (checkboxes)
+  const consList = document.getElementById('consumedList');
+  const consHidden = document.getElementById('inpConsumed');
+  const consDisplay = document.getElementById('consumedDisplay');
+  if (consList && consHidden && consDisplay){
+    const selectedArr = (consHidden.value || '').split(',').map(cleanPersonName).filter(Boolean);
+    const selectedSet = new Set(selectedArr);
+    consList.innerHTML = names.map(n => {
+      const chk = selectedSet.has(cleanPersonName(n)) ? 'checked' : '';
+      return `
+        <label class="name-opt">
+          <span class="left">
+            <input type="checkbox" ${chk} onchange="toggleConsumedName('${escapeHtml(n)}', this.checked)" />
+            <span class="lbl">${escapeHtml(n)}</span>
+          </span>
+        </label>
+      `;
+    }).join('') || '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
+    consDisplay.textContent = selectedArr.length ? selectedArr.join(', ') : 'Select / Add';
+  }
+}
+
+function selectPaidName(name){
+  const paidHidden = document.getElementById('inpPaid');
+  if (!paidHidden) return;
+  paidHidden.value = cleanPersonName(name);
+  renderNameDropdownLists();
+  // close panel after selection
+  const panel = document.getElementById('paidPanel');
+  if (panel) panel.classList.add('hidden');
+}
+
+function toggleConsumedName(name, isChecked){
+  const consHidden = document.getElementById('inpConsumed');
+  if (!consHidden) return;
+  let arr = (consHidden.value || '').split(',').map(cleanPersonName).filter(Boolean);
+  const n = cleanPersonName(name);
+  if (isChecked){
+    if (!arr.includes(n)) arr.push(n);
+  } else {
+    arr = arr.filter(x => x !== n);
+  }
+  consHidden.value = arr.join(', ');
+  renderNameDropdownLists();
+}
+
+// Close dropdown panels if user taps outside
+document.addEventListener('click', (e) => {
+  const paid = document.getElementById('paidDropdown');
+  const cons = document.getElementById('consumedDropdown');
+  if (paid && paid.contains(e.target)) return;
+  if (cons && cons.contains(e.target)) return;
+  const p = document.getElementById('paidPanel'); if (p) p.classList.add('hidden');
+  const c = document.getElementById('consumedPanel'); if (c) c.classList.add('hidden');
+});
+
 function renderList() {
   const container = document.getElementById('listContainer');
-  const search = (document.getElementById('searchInput').value || '').toLowerCase();
-  const type = document.getElementById('searchType').value;
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const type = document.getElementById('searchType')?.value || 'all';
+
+  // grand total (always all-time, not affected by period selection)
+  const grandTotal = entries.reduce((s, e) => s + parseFloat(e.price || 0), 0);
+  const headerTotalEl = document.getElementById('headerTotal');
+  if (headerTotalEl) headerTotalEl.innerText = formatCurrency(grandTotal);
 
   let data = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -125,6 +405,14 @@ function renderList() {
     data = data.filter(e => (e.group || '').trim() === listGroup);
   }
 
+  // Period filter
+  const { start, end } = getListPeriodBounds();
+  data = data.filter(e => {
+    const d = new Date(e.date);
+    return d >= start && d <= end;
+  });
+
+  // Search filter
   if (search) {
     data = data.filter(e => {
       const itemMatch = (e.item || '').toLowerCase().includes(search);
@@ -143,16 +431,21 @@ function renderList() {
     });
   }
 
-  const total = data.reduce((s, e) => s + parseFloat(e.price || 0), 0);
-  document.getElementById('headerTotal').innerText = formatCurrency(total);
+  const periodTotal = data.reduce((s, e) => s + parseFloat(e.price || 0), 0);
+  updateDateStrip(periodTotal);
+
+  if (!container) return;
 
   if (data.length === 0) {
-    container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8;">No records found.</div>`;
+    container.innerHTML = `<div style="text-align:center; padding:28px 10px; color:#94a3b8;">No records for this period.</div>`;
     return;
   }
 
   container.innerHTML = data.map(e => {
     const groupPill = e.group ? `<span class="pill" style="background:#f1f5f9;color:#0f172a;">${escapeHtml(e.group)}</span>` : '';
+    const descRow = (e.desc || '').trim()
+      ? `<div class="card-row-3"><span class="card-desc">${escapeHtml(e.desc)}</span></div>`
+      : '';
     return `
       <div class="card" onclick="editEntry(${e.id})">
         <div class="card-row-1">
@@ -171,6 +464,7 @@ function renderList() {
             <span style="max-width:110px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(e.consumedBy)}</span>
           </div>
         </div>
+        ${descRow}
       </div>
     `;
   }).join('');
@@ -320,13 +614,16 @@ function calculateSummary() {
 function openEntryModal() {
   document.getElementById('modalTitle').innerText = "Add Expense";
   document.getElementById('entryId').value = "";
-  document.getElementById('inpDate').value = new Date().toISOString().slice(0, 16);
+  document.getElementById('inpDate').value = (document.getElementById('viewList')?.classList.contains('active') && listPeriod==='daily')
+    ? new Date(startOfDay(listCursor)).toISOString().slice(0,16)
+    : new Date().toISOString().slice(0, 16);
   document.getElementById('inpItem').value = "";
   document.getElementById('inpPrice').value = "";
   const grp = document.getElementById('inpGroup');
   if (grp) grp.value = "";
   document.getElementById('inpPaid').value = "";
   document.getElementById('inpConsumed').value = "";
+  renderNameDropdownLists();
   document.getElementById('inpDesc').value = "";
   document.getElementById('editTools').classList.add('hidden');
   document.getElementById('modalEntry').classList.add('active');
@@ -344,6 +641,7 @@ function editEntry(id) {
   if (grp) grp.value = e.group || '';
   document.getElementById('inpPaid').value = e.paidBy || '';
   document.getElementById('inpConsumed').value = e.consumedBy || '';
+  renderNameDropdownLists();
   document.getElementById('inpDesc').value = e.desc || "";
   document.getElementById('editTools').classList.remove('hidden');
   document.getElementById('modalEntry').classList.add('active');
@@ -356,14 +654,10 @@ function saveEntry() {
   const price = parseFloat(document.getElementById('inpPrice').value);
   const group = titleCaseWords((document.getElementById('inpGroup')?.value || '')).trim();
 
-  const paidBy = (document.getElementById('inpPaid').value || '')
-    .split(/[,&|]+/)
-    .map(cleanPersonName)
-    .filter(n => n)
-    .join(', ');
+  const paidBy = cleanPersonName(document.getElementById('inpPaid').value || '');
 
   const consumedBy = (document.getElementById('inpConsumed').value || '')
-    .split(/[,&|]+/)
+    .split(',')
     .map(cleanPersonName)
     .filter(n => n)
     .join(', ');
@@ -374,6 +668,12 @@ function saveEntry() {
     alert("Please fill in Date, Item, Price, and Names.");
     return;
   }
+
+  // Ensure catalog learns any new names
+  const _names = new Set(loadNamesCatalog());
+  if (paidBy) _names.add(cleanPersonName(paidBy));
+  (consumedBy || '').split(',').map(cleanPersonName).filter(Boolean).forEach(n => _names.add(n));
+  saveNamesCatalog([..._names]);
 
   const obj = {
     id: id ? parseInt(id) : Date.now(),
@@ -398,10 +698,6 @@ function saveEntry() {
   refreshListGroupDropdown();
   closeModal('modalEntry');
   renderList();
-
-  // Optional: if Drive session is active, auto-backup
-  // (won't prompt sign-in; will only run if token exists)
-  autoBackupIfConnected();
 }
 
 function deleteEntry() {
@@ -415,7 +711,7 @@ function deleteEntry() {
   refreshListGroupDropdown();
   closeModal('modalEntry');
   renderList();
-  autoBackupIfConnected();
+
 }
 
 // Copy button: open a centered date picker modal (mobile friendly)
@@ -585,7 +881,7 @@ function persist() {
 }
 
 function populateNamesAndGroups() {
-  // People names (for datalist)
+  // People names now handled via names catalog dropdowns
   const names = new Set();
   const groups = new Set();
 
@@ -597,7 +893,7 @@ function populateNamesAndGroups() {
   });
 
   const namesList = document.getElementById('namesList');
-  if (namesList) namesList.innerHTML = [...names].sort().map(n => `<option value="${escapeHtml(n)}">`).join('');
+  if (namesList) namesList.innerHTML = '';
 
   const groupsList = document.getElementById('groupsList');
   if (groupsList) groupsList.innerHTML = [...groups].sort().map(g => `<option value="${escapeHtml(g)}">`).join('');
@@ -615,7 +911,7 @@ function clearAllData() {
     refreshSummaryGroupDropdown();
   refreshListGroupDropdown();
     renderList();
-    autoBackupIfConnected();
+  
   }
 }
 
@@ -721,19 +1017,12 @@ function gisLoaded() {
       document.getElementById('driveControls').classList.add('hidden');
       document.getElementById('driveActions').classList.remove('hidden');
 
-      // Auto-restore right after login (if backup exists)
-      await restoreFromDrive(true);
-
-      // And do an immediate backup after restore (keeps Drive in sync)
-      await autoBackupIfConnected();
+      // Manual only: no auto-restore / auto-backup on login
     }
   });
 
   gisInited = true;
   updateDriveUI();
-  // Attempt silent reconnect on refresh if user connected before
-trySilentReconnect();
-
 }
 
 function updateDriveUI() {
@@ -760,12 +1049,8 @@ async function loginDrive() {
     alert("Google sign-in is not ready yet. Refresh and try again.");
     return;
   }
-
-  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === "1";
-
-  // If user connected before, try normal prompt first (less annoying).
-  // If it fails, user can tap again and it will show chooser.
-  tokenClient.requestAccessToken({ prompt: wasConnected ? "" : "select_account" });
+  // Force account picker on mobile so user sees the dialog
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 async function findLatestBackupFileId(token) {
@@ -776,6 +1061,14 @@ async function findLatestBackupFileId(token) {
   const data = await res.json();
   if (!data.files || data.files.length === 0) return null;
   return data.files[0].id;
+}
+
+function setDriveButtonLoading(btnId, loading){
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.classList.toggle('loading', !!loading);
+  const sp = btn.querySelector('.btn-spinner');
+  if (sp) sp.classList.toggle('hidden', !loading);
 }
 
 async function uploadBackupMultipart(token, fileIdOrNull) {
@@ -802,6 +1095,7 @@ async function uploadBackupMultipart(token, fileIdOrNull) {
 }
 
 async function backupToDrive() {
+  setDriveButtonLoading('btnBackupDrive', true);
   try {
     const token = gapi.client.getToken() ? gapi.client.getToken().access_token : null;
     if (!token) { alert("Not logged in!"); return; }
@@ -814,10 +1108,13 @@ async function backupToDrive() {
   } catch (e) {
     console.error(e);
     alert("Drive backup failed.");
+  } finally {
+    setDriveButtonLoading('btnBackupDrive', false);
   }
 }
 
 async function restoreFromDrive(silent = false) {
+  if (!silent) setDriveButtonLoading('btnRestoreDrive', true);
   try {
     const token = gapi.client.getToken() ? gapi.client.getToken().access_token : null;
     if (!token) { if (!silent) alert("Not logged in!"); return false; }
@@ -857,20 +1154,12 @@ async function restoreFromDrive(silent = false) {
     console.error(e);
     if (!silent) alert("Drive restore failed.");
     return false;
+  } finally {
+    if (!silent) setDriveButtonLoading('btnRestoreDrive', false);
   }
 }
 
-async function autoBackupIfConnected() {
-  try {
-    const token = gapi?.client?.getToken?.() ? gapi.client.getToken().access_token : null;
-    if (!token) return;
-    const fileId = await findLatestBackupFileId(token);
-    await uploadBackupMultipart(token, fileId);
-  } catch (e) {
-    // Silent by design
-    console.warn('Auto-backup skipped:', e);
-  }
-}
+async function autoBackupIfConnected(){ /* manual only */ }
 
 
 // =====================
@@ -982,4 +1271,4 @@ function deleteTemplate(idx) {
 }
 
 // expose for inline onclick
-Object.assign(window, {switchView, openEntryModal, saveEntry, editEntry, deleteEntry, triggerCopy, confirmCopyWithDate, openTemplatesModal, saveCurrentAsTemplate, applyTemplate, deleteTemplate, backupToDrive, restoreFromDrive, handleAuthClick, openDateModal, applyDateFilter, resetDates, openExportModal, executeExport, clearAllData, closeModal});
+Object.assign(window, {switchView, setListPeriod, shiftListDate, openListDatePicker, onListDatePicked, openMonthPicker, shiftMonthPicker, pickMonth, toggleNameDropdown, addNameFromInput, selectPaidName, toggleConsumedName, openEntryModal, saveEntry, editEntry, deleteEntry, triggerCopy, confirmCopyWithDate, openTemplatesModal, saveCurrentAsTemplate, applyTemplate, deleteTemplate, backupToDrive, restoreFromDrive, handleAuthClick, openDateModal, applyDateFilter, resetDates, openExportModal, executeExport, clearAllData, closeModal});
