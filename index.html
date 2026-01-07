@@ -22,24 +22,64 @@
                 <div class="app-title">Expense Manager</div>
                 <div class="total-badge" id="headerTotal">SR 0.00</div>
             </div>
+
+<!-- Period Tabs (Daily / Monthly / Yearly) -->
+<div class="period-tabs" role="tablist" aria-label="Records period">
+    <button class="period-tab active" type="button" data-period="daily" onclick="setListPeriod('daily')">Daily</button>
+    <button class="period-tab" type="button" data-period="monthly" onclick="setListPeriod('monthly')">Monthly</button>
+    <button class="period-tab" type="button" data-period="yearly" onclick="setListPeriod('yearly')">Yearly</button>
+</div>
+
+<!-- Date Navigator -->
+<div class="date-strip" aria-label="Date navigation">
+    <button class="date-nav-btn" type="button" onclick="shiftListDate(-1)" aria-label="Previous">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <div class="date-pill" role="button" tabindex="0"
+         onclick="openListDatePicker()"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openListDatePicker();}">
+        <div class="date-day" id="listDayNumber">--</div>
+        <div class="date-meta">
+            <div class="date-month" id="listMonthYear">--</div>
+            <div class="date-weekday" id="listWeekday">--</div>
+        </div>
+    </div>
+
+    <div class="date-balance">
+        <div class="bal-label">Balance</div>
+        <div class="bal-value" id="listBalance">SR 0.00</div>
+    </div>
+
+    <button class="date-nav-btn" type="button" onclick="shiftListDate(1)" aria-label="Next">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+</div>
+
+<!-- Hidden native date picker (Daily) -->
+<input type="date" id="listDatePicker" class="hidden" onchange="onListDatePicked(this.value)">
+
             <div class="search-container">
-                <select id="searchType" class="search-select" onchange="renderList()">
-                    <option value="all">All</option>
-                    <option value="item">Item</option>
-                    <option value="paid">Paid By</option>
-                    <option value="consumed">Consumed</option>
-                    <option value="group">Group</option>
-                    <option value="price">SAR</option>
-                </select>
+                <div class="Selector" >
+                    <select id="listGroupFilter" class="search-select" style="max-width:140px;"   onchange="renderList()">
+                    <option value="__all__">All Groups</option>
+                    </select>
+                    <select id="searchType" class="search-select" onchange="renderList()">
+                        <option value="all">All</option>
+                        <option value="item">Item</option>
+                        <option value="paid">Paid By</option>
+                        <option value="consumed">Consumed</option>
+                        <option value="group">Group</option>
+                        <option value="price">SAR</option>
+                    </select>
+                </div>
                 <div class="search-wrap">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeyup="renderList()">
                 </div>
             </div>
         
-                <select id="listGroupFilter" class="search-select" style="max-width:140px;" onchange="renderList()">
-                    <option value="__all__">All Groups</option>
-                </select>
+
 
         </header>
         <div id="listContainer" style="margin-top: 15px;"></div>
@@ -97,11 +137,11 @@
             </div>
 
             <div id="driveActions" class="hidden">
-                <button class="btn btn-primary" onclick="backupToDrive()">
-                    <i class="fas fa-cloud-upload-alt"></i> Backup to Drive
+                <button class="btn btn-primary" id="btnBackupDrive" onclick="backupToDrive()">
+                    <i class="fas fa-cloud-upload-alt"></i> <span class="btn-label">Backup to Drive</span><span class="btn-spinner hidden"><i class="fas fa-circle-notch fa-spin"></i></span>
                 </button>
-                <button class="btn btn-outline" onclick="restoreFromDrive()">
-                    <i class="fas fa-cloud-download-alt"></i> Restore from Drive
+                <button class="btn btn-outline" id="btnRestoreDrive" onclick="restoreFromDrive()">
+                    <i class="fas fa-cloud-download-alt"></i> <span class="btn-label">Restore from Drive</span><span class="btn-spinner hidden"><i class="fas fa-circle-notch fa-spin"></i></span>
                 </button>
                 <div style="margin-top:10px; font-size:0.8rem; color:#64748b; text-align:center;">
                     File: expense_manager_backup.json
@@ -172,18 +212,53 @@
                 <input type="text" id="inpGroup" class="input" list="groupsList" placeholder="e.g. Roommate, Office, Trip">
             </div>
 <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1">
-                    <label class="label">Paid By</label>
-                    <input type="text" id="inpPaid" class="input" list="namesList" placeholder="Fahad, Asad">
+    <div class="form-group" style="flex:1">
+        <label class="label">Paid By</label>
+
+        <!-- Hidden value used by the app -->
+        <input type="hidden" id="inpPaid">
+
+        <div class="name-dropdown" id="paidDropdown">
+            <button type="button" class="name-drop-btn" onclick="toggleNameDropdown('paid')" aria-haspopup="listbox" aria-expanded="false">
+                <span id="paidDisplay" class="name-drop-text">Select / Add</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="name-drop-panel hidden" id="paidPanel">
+                <div class="name-drop-add">
+                    <input type="text" id="paidNewName" class="input" placeholder="Add new name">
+                    <button class="btn btn-primary" style="padding:10px 12px; min-width:auto;" onclick="addNameFromInput('paid')"><i class="fas fa-plus"></i></button>
                 </div>
-                <div class="form-group" style="flex:1">
-                    <label class="label">Consumed By</label>
-                    <input type="text" id="inpConsumed" class="input" list="namesList" placeholder="Fahad, Asad, W...">
+                <div class="name-drop-list" id="paidList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group" style="flex:1">
+        <label class="label">Consumed By</label>
+
+        <!-- Hidden value used by the app -->
+        <input type="hidden" id="inpConsumed">
+
+        <div class="name-dropdown" id="consumedDropdown">
+            <button type="button" class="name-drop-btn" onclick="toggleNameDropdown('consumed')" aria-haspopup="listbox" aria-expanded="false">
+                <span id="consumedDisplay" class="name-drop-text">Select / Add</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="name-drop-panel hidden" id="consumedPanel">
+                <div class="name-drop-add">
+                    <input type="text" id="consumedNewName" class="input" placeholder="Add new name">
+                    <button class="btn btn-primary" style="padding:10px 12px; min-width:auto;" onclick="addNameFromInput('consumed')"><i class="fas fa-plus"></i></button>
                 </div>
+                <div class="name-drop-list" id="consumedList"></div>
+                <button class="btn btn-outline" style="margin-top:10px;" onclick="toggleNameDropdown('consumed', true)">Done</button>
             </div>
-            <div class="label" style="margin-top:-10px; margin-bottom:15px; font-weight:400; font-size:0.75rem;">
-                Tip: Separate multiple names with commas.
-            </div>
+        </div>
+    </div>
+</div>
+
+<div class="label" style="margin-top:-10px; margin-bottom:15px; font-weight:400; font-size:0.75rem;">
+    Tip: Add a name once, then just tap to select next time.
+</div>
 
             <div class="form-group">
                 <label class="label">Description</label>
@@ -273,7 +348,29 @@
         </div>
     </div>
 
- 
+
+<!-- MODAL: MONTH PICKER (for Monthly view) -->
+<div class="modal-overlay" id="modalMonthPicker">
+    <div class="modal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">Select Month</h3>
+            <i class="fas fa-times" onclick="closeModal('modalMonthPicker')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
+        </div>
+
+        <div class="month-head">
+            <button class="date-nav-btn" type="button" onclick="shiftMonthPicker(-1)" aria-label="Previous year">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="month-year" id="monthPickerYear">----</div>
+            <button class="date-nav-btn" type="button" onclick="shiftMonthPicker(1)" aria-label="Next year">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="month-grid" id="monthGrid"></div>
+    </div>
+</div>
+
     <datalist id="namesList"></datalist>
     <datalist id="groupsList"></datalist>
     <button class="fab" onclick="openEntryModal()"><i class="fas fa-plus"></i></button>
