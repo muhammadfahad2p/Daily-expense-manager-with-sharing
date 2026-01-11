@@ -1,400 +1,720 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Expense Manager Pro</title>
     <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
     <!-- Google Identity Services (Async Load) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
-    <link rel="stylesheet" href="style.css">
-    
-</head>
-<body>
-
+    <link rel="stylesheet" href="style.css?v=1" />
+    <link rel="icon" href="favicon.ico" />
+  </head>
+  <body>
     <!-- LIST VIEW -->
     <div id="viewList" class="view-section active">
-        <header>
-            <div class="header-top">
-                <div class="app-title">Expense Manager</div>
-                <div class="total-badge" id="headerTotal">SR 0.00</div>
-            </div>
-
-<!-- Period Tabs (Daily / Monthly / Yearly) -->
-<div class="period-tabs" role="tablist" aria-label="Records period">
-    <button class="period-tab active" type="button" data-period="daily" onclick="setListPeriod('daily')">Daily</button>
-    <button class="period-tab" type="button" data-period="monthly" onclick="setListPeriod('monthly')">Monthly</button>
-    <button class="period-tab" type="button" data-period="yearly" onclick="setListPeriod('yearly')">Yearly</button>
-</div>
-
-<!-- Date Navigator -->
-<div class="date-strip" aria-label="Date navigation">
-    <button class="date-nav-btn" type="button" onclick="shiftListDate(-1)" aria-label="Previous">
-        <i class="fas fa-chevron-left"></i>
-    </button>
-
-    <div class="date-pill" role="button" tabindex="0"
-         onclick="openListDatePicker()"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openListDatePicker();}">
-        <div class="date-day" id="listDayNumber">--</div>
-        <div class="date-meta">
-            <div class="date-month" id="listMonthYear">--</div>
-            <div class="date-weekday" id="listWeekday">--</div>
+      <header>
+        <div class="header-top">
+          <div class="app-title">Expense Manager</div>
+          <div class="total-badge" id="headerTotal">SR 0.00</div>
         </div>
-    </div>
 
-    <div class="date-balance">
-        <div class="bal-label">Balance</div>
-        <div class="bal-value" id="listBalance">SR 0.00</div>
-    </div>
+        <!-- Period Tabs (Daily / Monthly / Yearly) -->
+        <div class="period-tabs" role="tablist" aria-label="Records period">
+          <button
+            class="period-tab active"
+            type="button"
+            data-period="daily"
+            onclick="setListPeriod('daily')"
+          >
+            Daily
+          </button>
+          <button
+            class="period-tab"
+            type="button"
+            data-period="monthly"
+            onclick="setListPeriod('monthly')"
+          >
+            Monthly
+          </button>
+          <button
+            class="period-tab"
+            type="button"
+            data-period="yearly"
+            onclick="setListPeriod('yearly')"
+          >
+            Yearly
+          </button>
+        </div>
 
-    <button class="date-nav-btn" type="button" onclick="shiftListDate(1)" aria-label="Next">
-        <i class="fas fa-chevron-right"></i>
-    </button>
-</div>
+        <!-- Date Navigator -->
+        <div class="date-strip" aria-label="Date navigation">
+          <button
+            class="date-nav-btn"
+            type="button"
+            onclick="shiftListDate(-1)"
+            aria-label="Previous"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </button>
 
-<!-- Hidden native date picker (Daily) -->
-<input type="date" id="listDatePicker" class="hidden" onchange="onListDatePicked(this.value)">
-
-            <div class="search-container">
-                <div class="Selector" >
-                    <select id="listGroupFilter" class="search-select" style="max-width:140px;"   onchange="renderList()">
-                    <option value="__all__">All Groups</option>
-                    </select>
-                    <select id="searchType" class="search-select" onchange="renderList()">
-                        <option value="all">All</option>
-                        <option value="item">Item</option>
-                        <option value="paid">Paid By</option>
-                        <option value="consumed">Consumed</option>
-                        <option value="group">Group</option>
-                        <option value="price">SAR</option>
-                    </select>
-                </div>
-                <div class="search-wrap">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeyup="renderList()">
-                </div>
+          <div
+            class="date-pill"
+            role="button"
+            tabindex="0"
+            onclick="openListDatePicker()"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openListDatePicker();}"
+          >
+            <div class="date-day" id="listDayNumber">--</div>
+            <div class="date-meta">
+              <div class="date-month" id="listMonthYear">--</div>
+              <div class="date-weekday" id="listWeekday">--</div>
             </div>
-        
+          </div>
 
+          <div class="date-balance">
+            <div class="bal-label">Balance</div>
+            <div class="bal-value" id="listBalance">SR 0.00</div>
+          </div>
 
-        </header>
-        <div id="listContainer" style="margin-top: 15px;"></div>
+          <button
+            class="date-nav-btn"
+            type="button"
+            onclick="shiftListDate(1)"
+            aria-label="Next"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <!-- Hidden native date picker (Daily) -->
+        <input
+          type="date"
+          id="listDatePicker"
+          class="hidden"
+          onchange="onListDatePicked(this.value)"
+        />
+
+        <div class="search-container">
+          <div class="Selector">
+            <select
+              id="listGroupFilter"
+              class="search-select"
+              style="max-width: 140px"
+              onchange="renderList()"
+            >
+              <option value="__all__">All Groups</option>
+            </select>
+            <select
+              id="searchType"
+              class="search-select"
+              onchange="renderList()"
+            >
+              <option value="all">All</option>
+              <option value="item">Item</option>
+              <option value="paid">Paid By</option>
+              <option value="consumed">Consumed</option>
+              <option value="group">Group</option>
+              <option value="price">SAR</option>
+            </select>
+          </div>
+          <div class="search-wrap">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Search..."
+              onkeyup="renderList()"
+            />
+          </div>
+        </div>
+      </header>
+      <div id="listContainer" style="margin-top: 15px"></div>
     </div>
 
     <!-- SUMMARY VIEW -->
     <div id="viewSummary" class="view-section">
-        <h2 style="margin: 0 0 15px 0;">Analysis</h2>
-        
-        <div class="section-box">
-            <div class="label">Time Period</div>
-            <div id="currentRangeDisplay" class="current-range">All Time</div>
-            
-            
-            <div class="label" style="margin-top:10px;">Group</div>
-            <select id="summaryGroupFilter" class="search-select" style="max-width:100%; width:100%;" onchange="calculateSummary()">
-                <option value="__all__">All Groups</option>
-            </select>
-<button class="btn btn-primary" onclick="openDateModal()">Select Date Range</button>
-            <button class="btn btn-outline" onclick="resetDates()">Show All Time</button>
-        </div>
+      <h2 style="margin: 0 0 15px 0">Analysis</h2>
 
-        <div class="section-box">
-            <div class="box-header"><span>Settlement</span> <i class="fas fa-handshake" style="color:var(--success)"></i></div>
-            <div id="settlementArea"></div>
-        </div>
+      <div class="section-box">
+        <div class="label">Time Period</div>
+        <div id="currentRangeDisplay" class="current-range">All Time</div>
 
-        <div class="section-box">
-            <div class="box-header">Who Paid</div>
-            <div id="paidArea"></div>
+        <div class="label" style="margin-top: 10px">Group</div>
+        <select
+          id="summaryGroupFilter"
+          class="search-select"
+          style="max-width: 100%; width: 100%"
+          onchange="calculateSummary()"
+        >
+          <option value="__all__">All Groups</option>
+        </select>
+        <button class="btn btn-primary" onclick="openDateModal()">
+          Select Date Range
+        </button>
+        <button class="btn btn-outline" onclick="resetDates()">
+          Show All Time
+        </button>
+      </div>
+
+      <div class="section-box">
+        <div class="box-header">
+          <span>Settlement</span>
+          <i class="fas fa-handshake" style="color: var(--success)"></i>
         </div>
-        
-        <div class="section-box">
-            <div class="box-header">Who Consumed</div>
-            <div id="consumedArea"></div>
-        </div>
+        <div id="settlementArea"></div>
+      </div>
+
+      <div class="section-box">
+        <div class="box-header">Who Paid</div>
+        <div id="paidArea"></div>
+      </div>
+
+      <div class="section-box">
+        <div class="box-header">Who Consumed</div>
+        <div id="consumedArea"></div>
+      </div>
     </div>
 
     <!-- SETTINGS / SYNC VIEW -->
     <div id="viewSettings" class="view-section">
-        <h2 style="margin: 0 0 15px 0;">Data & Sync</h2>
+      <h2 style="margin: 0 0 15px 0">Data & Sync</h2>
 
-        <!-- Google Drive Section -->
-        <div class="section-box">
-            <div class="box-header"><span>Google Drive Backup</span> <i class="fab fa-google-drive" style="color:#4285F4"></i></div>
-            
-            <div id="syncStatus" class="sync-status">
-                <i class="fas fa-circle-notch fa-spin"></i> Initializing...
-            </div>
-
-            <div id="driveControls" class="hidden">
-                <button class="btn btn-google" onclick="handleAuthClick()">
-                    <i class="fab fa-google"></i> Connect Google Account
-                </button>
-            </div>
-
-            <div id="driveActions" class="hidden">
-                <button class="btn btn-primary" id="btnBackupDrive" onclick="backupToDrive()">
-                    <i class="fas fa-cloud-upload-alt"></i> <span class="btn-label">Backup to Drive</span><span class="btn-spinner hidden"><i class="fas fa-circle-notch fa-spin"></i></span>
-                </button>
-                <button class="btn btn-outline" id="btnRestoreDrive" onclick="restoreFromDrive()">
-                    <i class="fas fa-cloud-download-alt"></i> <span class="btn-label">Restore from Drive</span><span class="btn-spinner hidden"><i class="fas fa-circle-notch fa-spin"></i></span>
-                </button>
-                <div style="margin-top:10px; font-size:0.8rem; color:#64748b; text-align:center;">
-                    File: expense_manager_backup.json
-                </div>
-            </div>
+      <!-- Google Drive Section -->
+      <div class="section-box">
+        <div class="box-header">
+          <span>Google Drive Backup</span>
+          <i class="fab fa-google-drive" style="color: #4285f4"></i>
         </div>
 
-        
-        <!-- Templates Section -->
-        <div class="section-box">
-            <div class="box-header">Templates</div>
-            <button class="btn btn-outline" onclick="openTemplatesModal()">
-                <i class="fas fa-layer-group"></i> Manage Templates
-            </button>
-            <div class="label" style="margin-top:10px; font-weight:400; text-align:center;">
-                Save frequent entries as templates for quick adding.
-            </div>
+        <div id="syncStatus" class="sync-status">
+          <i class="fas fa-circle-notch fa-spin"></i> Initializing...
         </div>
 
-<!-- Local Data Section -->
-        <div class="section-box">
-            <div class="box-header">Local Data</div>
-            
-            <input type="file" id="importFile" accept=".csv" class="hidden" onchange="handleFileSelect(this)">
-            
-            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
-                <i class="fas fa-file-import"></i> Import CSV
-            </button>
-            
-            <button class="btn btn-outline" onclick="openExportModal()">
-                <i class="fas fa-file-csv"></i> Export CSV
-            </button>
-            
-            <button class="btn btn-danger" onclick="clearAllData()">
-                <i class="fas fa-trash-alt"></i> Clear All Data
-            </button>
-            
-            <div class="label" style="margin-top:10px; font-weight:400; text-align:center;">
-                Supports Import/Export for Excel/Sheets
-            </div>
+        <div id="driveControls" class="hidden">
+          <button class="btn btn-google" onclick="handleAuthClick()">
+            <i class="fab fa-google"></i> Connect Google Account
+          </button>
         </div>
+
+        <div id="driveActions" class="hidden">
+          <button
+            class="btn btn-primary"
+            id="btnBackupDrive"
+            onclick="backupToDrive()"
+          >
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span class="btn-label">Backup to Drive</span
+            ><span class="btn-spinner hidden"
+              ><i class="fas fa-circle-notch fa-spin"></i
+            ></span>
+          </button>
+          <button
+            class="btn btn-outline"
+            id="btnRestoreDrive"
+            onclick="restoreFromDrive()"
+          >
+            <i class="fas fa-cloud-download-alt"></i>
+            <span class="btn-label">Restore from Drive</span
+            ><span class="btn-spinner hidden"
+              ><i class="fas fa-circle-notch fa-spin"></i
+            ></span>
+          </button>
+          <div
+            style="
+              margin-top: 10px;
+              font-size: 0.8rem;
+              color: #64748b;
+              text-align: center;
+            "
+          >
+            File: expense_manager_backup.json
+          </div>
+        </div>
+      </div>
+
+      <!-- Templates Section -->
+      <div class="section-box">
+        <div class="box-header">Templates</div>
+        <button class="btn btn-outline" onclick="openTemplatesModal()">
+          <i class="fas fa-layer-group"></i> Manage Templates
+        </button>
+        <div
+          class="label"
+          style="margin-top: 10px; font-weight: 400; text-align: center"
+        >
+          Save frequent entries as templates for quick adding.
+        </div>
+      </div>
+
+      <!-- Local Data Section -->
+      <div class="section-box">
+        <div class="box-header">Local Data</div>
+
+        <input
+          type="file"
+          id="importFile"
+          accept=".csv"
+          class="hidden"
+          onchange="handleFileSelect(this)"
+        />
+
+        <button
+          class="btn btn-outline"
+          onclick="document.getElementById('importFile').click()"
+        >
+          <i class="fas fa-file-import"></i> Import CSV
+        </button>
+
+        <button class="btn btn-outline" onclick="openExportModal()">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </button>
+
+        <button class="btn btn-danger" onclick="clearAllData()">
+          <i class="fas fa-trash-alt"></i> Clear All Data
+        </button>
+
+        <div
+          class="label"
+          style="margin-top: 10px; font-weight: 400; text-align: center"
+        >
+          Supports Import/Export for Excel/Sheets
+        </div>
+      </div>
     </div>
 
     <!-- MODAL: ADD/EDIT -->
     <div class="modal-overlay" id="modalEntry">
-        <div class="modal">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="modalTitle" style="margin:0;">Expense</h3>
-                <i class="fas fa-times" onclick="closeModal('modalEntry')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
-            </div>
-            
-            <input type="hidden" id="entryId">
-            <div class="form-group">
-                <label class="label">Date</label>
-                <input type="datetime-local" id="inpDate" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">Item</label>
-                <input type="text" id="inpItem" class="input" placeholder="e.g. Dinner">
-            </div>
-            <div class="form-group">
-                <label class="label">Price (SR)</label>
-                <input type="number" id="inpPrice" class="input" placeholder="0.00" step="0.01">
-            </div>
-            
-            <div class="form-group">
-                <label class="label">Group</label>
-                <input type="text" id="inpGroup" class="input" list="groupsList" placeholder="e.g. Roommate, Office, Trip">
-            </div>
-<div style="display:flex; gap:10px;">
-    <div class="form-group" style="flex:1">
-        <label class="label">Paid By</label>
+      <div class="modal">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 id="modalTitle" style="margin: 0">Expense</h3>
+          <i
+            class="fas fa-times"
+            onclick="closeModal('modalEntry')"
+            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
+          ></i>
+        </div>
 
-        <!-- Hidden value used by the app -->
-        <input type="hidden" id="inpPaid">
+        <input type="hidden" id="entryId" />
+        <div class="form-group">
+          <label class="label">Date</label>
+          <input type="datetime-local" id="inpDate" class="input" />
+        </div>
+        <div class="form-group">
+          <label class="label" for="inpItem">Item</label>
+          <input
+            type="text"
+            id="inpItem"
+            class="input"
+            placeholder="e.g. Dinner"
+          />
+        </div>
+        <div class="form-group">
+          <label class="label" for="inpPrice">Price (SR)</label>
+          <input
+            type="number"
+            id="inpPrice"
+            class="input"
+            placeholder="0.00"
+            step="0.01"
+          />
+        </div>
 
-        <div class="name-dropdown" id="paidDropdown">
-            <button type="button" class="name-drop-btn" onclick="toggleNameDropdown('paid')" aria-haspopup="listbox" aria-expanded="false">
-                <span id="paidDisplay" class="name-drop-text">Select / Add</span>
+        <div class="form-group">
+          <label class="label" for="inpGroup">Group</label>
+          <input
+            type="text"
+            id="inpGroup"
+            class="input"
+            list="groupsList"
+            placeholder="e.g. Roommate, Office, Trip"
+          />
+        </div>
+        <div style="display: flex; gap: 10px">
+          <div class="form-group" style="flex: 1">
+            <label class="label">Paid By</label>
+
+            <!-- Hidden value used by the app -->
+            <input type="hidden" id="inpPaid" />
+
+            <div class="name-dropdown" id="paidDropdown">
+              <button
+                type="button"
+                class="name-drop-btn"
+                onclick="openNamePicker('paid')"
+              >
+                <span id="paidDisplay" class="name-drop-text"
+                  >Select / Add</span
+                >
                 <i class="fas fa-chevron-down"></i>
-            </button>
-            <div class="name-drop-panel hidden" id="paidPanel">
+              </button>
+              <div class="name-drop-panel hidden" id="paidPanel">
                 <div class="name-drop-add">
-                    <input type="text" id="paidNewName" class="input" placeholder="Add new name">
-                    <button class="btn btn-primary" style="padding:10px 12px; min-width:auto;" onclick="addNameFromInput('paid')"><i class="fas fa-plus"></i></button>
+                  <input
+                    type="text"
+                    id="paidNewName"
+                    class="input"
+                    placeholder="Add new name"
+                  />
+                  <button
+                    class="btn btn-primary"
+                    style="padding: 10px 12px; min-width: auto"
+                    onclick="addNameFromInput('paid')"
+                  >
+                    <i class="fas fa-plus"></i>
+                  </button>
                 </div>
                 <div class="name-drop-list" id="paidList"></div>
+              </div>
             </div>
-        </div>
-    </div>
+          </div>
 
-    <div class="form-group" style="flex:1">
-        <label class="label">Consumed By</label>
+          <div class="form-group" style="flex: 1">
+            <label class="label">Consumed By</label>
 
-        <!-- Hidden value used by the app -->
-        <input type="hidden" id="inpConsumed">
+            <!-- Hidden value used by the app -->
+            <input type="hidden" id="inpConsumed" />
 
-        <div class="name-dropdown" id="consumedDropdown">
-            <button type="button" class="name-drop-btn" onclick="toggleNameDropdown('consumed')" aria-haspopup="listbox" aria-expanded="false">
-                <span id="consumedDisplay" class="name-drop-text">Select / Add</span>
+            <div class="name-dropdown" id="consumedDropdown">
+              <button
+                type="button"
+                class="name-drop-btn"
+                onclick="openNamePicker('consumed')"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+              >
+                <span id="consumedDisplay" class="name-drop-text"
+                  >Select / Add</span
+                >
                 <i class="fas fa-chevron-down"></i>
-            </button>
-            <div class="name-drop-panel hidden" id="consumedPanel">
+              </button>
+              <div class="name-drop-panel hidden" id="consumedPanel">
                 <div class="name-drop-add">
-                    <input type="text" id="consumedNewName" class="input" placeholder="Add new name">
-                    <button class="btn btn-primary" style="padding:10px 12px; min-width:auto;" onclick="addNameFromInput('consumed')"><i class="fas fa-plus"></i></button>
+                  <input
+                    type="text"
+                    id="consumedNewName"
+                    class="input"
+                    placeholder="Add new name"
+                  />
+                  <button
+                    class="btn btn-primary"
+                    style="padding: 10px 12px; min-width: auto"
+                    onclick="addNameFromInput('consumed')"
+                  >
+                    <i class="fas fa-plus"></i>
+                  </button>
                 </div>
                 <div class="name-drop-list" id="consumedList"></div>
-                <button class="btn btn-outline" style="margin-top:10px;" onclick="toggleNameDropdown('consumed', true)">Done</button>
+                <button
+                  type="button"
+                  class="name-drop-btn"
+                  onclick="openNamePicker('consumed')"
+                >
+                  Done
+                </button>
+              </div>
             </div>
+          </div>
         </div>
-    </div>
-</div>
 
-<div class="label" style="margin-top:-10px; margin-bottom:15px; font-weight:400; font-size:0.75rem;">
-    Tip: Add a name once, then just tap to select next time.
-</div>
-
-            <div class="form-group">
-                <label class="label">Description</label>
-                <input type="text" id="inpDesc" class="input">
-            </div>
-
-            <button class="btn btn-primary" onclick="saveEntry()">Save Record</button>
-            
-            <div id="editTools" class="hidden" style="display:flex; gap:10px; margin-top:10px;">
-                <button class="btn btn-copy" onclick="triggerCopy()"><i class="fas fa-copy"></i> Copy</button>
-                <button class="btn btn-danger" onclick="deleteEntry()"><i class="fas fa-trash"></i> Delete</button>
-            </div>
+        <div
+          class="label"
+          style="
+            margin-top: -10px;
+            margin-bottom: 15px;
+            font-weight: 400;
+            font-size: 0.75rem;
+          "
+        >
+          Tip: Add a name once, then just tap to select next time.
         </div>
+
+        <div class="form-group">
+          <label class="label">Description</label>
+          <input type="text" id="inpDesc" class="input" />
+        </div>
+
+        <button class="btn btn-primary" onclick="saveEntry()">
+          Save Record
+        </button>
+
+        <div
+          id="editTools"
+          class="hidden"
+          style="display: flex; gap: 10px; margin-top: 10px"
+        >
+          <button class="btn btn-copy" onclick="triggerCopy()">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+          <button class="btn btn-danger" onclick="deleteEntry()">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- MODAL: DATE PICKER FOR SUMMARY -->
     <div class="modal-overlay" id="modalDateFilter">
-        <div class="modal">
-            <h3>Select Date Range</h3>
-            <div class="form-group">
-                <label class="label">From</label>
-                <input type="date" id="sumStart" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">To</label>
-                <input type="date" id="sumEnd" class="input">
-            </div>
-            <button class="btn btn-primary" onclick="applyDateFilter()">Apply Filter</button>
-            <button class="btn btn-outline" onclick="closeModal('modalDateFilter')">Cancel</button>
+      <div class="modal">
+        <h3>Select Date Range</h3>
+        <div class="form-group">
+          <label class="label">From</label>
+          <input type="date" id="sumStart" class="input" />
         </div>
+        <div class="form-group">
+          <label class="label">To</label>
+          <input type="date" id="sumEnd" class="input" />
+        </div>
+        <button class="btn btn-primary" onclick="applyDateFilter()">
+          Apply Filter
+        </button>
+        <button class="btn btn-outline" onclick="closeModal('modalDateFilter')">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- MODAL: EXPORT -->
     <div class="modal-overlay" id="modalExport">
-        <div class="modal">
-            <h3>Export Data</h3>
-            <div class="form-group">
-                <label class="label">From</label>
-                <input type="date" id="expStart" class="input">
-            </div>
-            <div class="form-group">
-                <label class="label">To</label>
-                <input type="date" id="expEnd" class="input">
-            </div>
-            <button class="btn btn-primary" onclick="executeExport('csv')">Download CSV</button>
-            <button class="btn btn-copy" onclick="executeExport('share')">Share File</button>
-            <button class="btn btn-outline" onclick="closeModal('modalExport')">Cancel</button>
+      <div class="modal">
+        <h3>Export Data</h3>
+        <div class="form-group">
+          <label class="label">From</label>
+          <input type="date" id="expStart" class="input" />
         </div>
+        <div class="form-group">
+          <label class="label">To</label>
+          <input type="date" id="expEnd" class="input" />
+        </div>
+        <button class="btn btn-primary" onclick="executeExport('csv')">
+          Download CSV
+        </button>
+        <button class="btn btn-copy" onclick="executeExport('share')">
+          Share File
+        </button>
+        <button class="btn btn-outline" onclick="closeModal('modalExport')">
+          Cancel
+        </button>
+      </div>
     </div>
-
 
     <!-- MODAL: COPY DATE -->
     <div class="modal-overlay" id="modalCopyDate">
-        <div class="modal">
-            <h3>Copy Record</h3>
-            <div class="form-group">
-                <label class="label">Select Date</label>
-                <input type="date" id="copyDatePicker" class="input">
-            </div>
-            <button class="btn btn-primary" onclick="confirmCopyWithDate()">Create Copy</button>
-            <button class="btn btn-outline" onclick="closeModal('modalCopyDate')">Cancel</button>
+      <div class="modal">
+        <h3>Copy Record</h3>
+        <div class="form-group">
+          <label class="label">Select Date</label>
+          <input type="date" id="copyDatePicker" class="input" />
         </div>
+        <button class="btn btn-primary" onclick="confirmCopyWithDate()">
+          Create Copy
+        </button>
+        <button class="btn btn-outline" onclick="closeModal('modalCopyDate')">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- MODAL: TEMPLATE MANAGER -->
     <div class="modal-overlay" id="modalTemplates">
-        <div class="modal">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0;">Templates</h3>
-                <i class="fas fa-times" onclick="closeModal('modalTemplates')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
-            </div>
-
-            <div class="form-group">
-                <label class="label">Add Template Name</label>
-                <input type="text" id="tplName" class="input" placeholder="e.g. Lunch, Petrol">
-            </div>
-            <button class="btn btn-primary" onclick="saveCurrentAsTemplate()">
-                <i class="fas fa-plus"></i> Save Current Entry as Template
-            </button>
-
-            <div style="margin-top:15px;">
-                <div class="label" style="margin-bottom:8px;">Saved Templates</div>
-                <div id="templatesList" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-
-            <button class="btn btn-outline" style="margin-top:15px;" onclick="closeModal('modalTemplates')">Close</button>
+      <div class="modal">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          "
+        >
+          <h3 style="margin: 0">Templates</h3>
+          <i
+            class="fas fa-times"
+            onclick="closeModal('modalTemplates')"
+            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
+          ></i>
         </div>
+
+        <div class="form-group">
+          <label class="label">Add Template Name</label>
+          <input
+            type="text"
+            id="tplName"
+            class="input"
+            placeholder="e.g. Lunch, Petrol"
+          />
+        </div>
+        <button class="btn btn-primary" onclick="saveCurrentAsTemplate()">
+          <i class="fas fa-plus"></i> Save Current Entry as Template
+        </button>
+
+        <div style="margin-top: 15px">
+          <div class="label" style="margin-bottom: 8px">Saved Templates</div>
+          <div
+            id="templatesList"
+            style="display: flex; flex-direction: column; gap: 10px"
+          ></div>
+        </div>
+
+        <button
+          class="btn btn-outline"
+          style="margin-top: 15px"
+          onclick="closeModal('modalTemplates')"
+        >
+          Close
+        </button>
+      </div>
     </div>
 
-
-<!-- MODAL: MONTH PICKER (for Monthly view) -->
-<div class="modal-overlay" id="modalMonthPicker">
-    <div class="modal">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0;">Select Month</h3>
-            <i class="fas fa-times" onclick="closeModal('modalMonthPicker')" style="font-size:1.2rem; color:#94a3b8; cursor:pointer;"></i>
+    <!-- MODAL: MONTH PICKER (for Monthly view) -->
+    <div class="modal-overlay" id="modalMonthPicker">
+      <div class="modal">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+          "
+        >
+          <h3 style="margin: 0">Select Month</h3>
+          <i
+            class="fas fa-times"
+            onclick="closeModal('modalMonthPicker')"
+            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
+          ></i>
         </div>
 
         <div class="month-head">
-            <button class="date-nav-btn" type="button" onclick="shiftMonthPicker(-1)" aria-label="Previous year">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="month-year" id="monthPickerYear">----</div>
-            <button class="date-nav-btn" type="button" onclick="shiftMonthPicker(1)" aria-label="Next year">
-                <i class="fas fa-chevron-right"></i>
-            </button>
+          <button
+            class="date-nav-btn"
+            type="button"
+            onclick="shiftMonthPicker(-1)"
+            aria-label="Previous year"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="month-year" id="monthPickerYear">----</div>
+          <button
+            class="date-nav-btn"
+            type="button"
+            onclick="shiftMonthPicker(1)"
+            aria-label="Next year"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
 
         <div class="month-grid" id="monthGrid"></div>
+      </div>
     </div>
-</div>
 
     <datalist id="namesList"></datalist>
     <datalist id="groupsList"></datalist>
-    <button class="fab" onclick="openEntryModal()"><i class="fas fa-plus"></i></button>
+    <button class="fab" onclick="openEntryModal()">
+      <i class="fas fa-plus"></i>
+    </button>
 
     <!-- NAV -->
     <nav class="bottom-nav">
-        <button class="nav-item active" onclick="switchView('list')" id="btnList">
-            <i class="fas fa-list"></i> <span>Records</span>
-        </button>
-        <button class="nav-item" onclick="switchView('summary')" id="btnSum">
-            <i class="fas fa-chart-pie"></i> <span>Summary</span>
-        </button>
-        <button class="nav-item" onclick="switchView('settings')" id="btnSet">
-            <i class="fas fa-cloud"></i> <span>Sync</span>
-        </button>
+      <button class="nav-item active" onclick="switchView('list')" id="btnList">
+        <i class="fas fa-list"></i> <span>Records</span>
+      </button>
+      <button class="nav-item" onclick="switchView('summary')" id="btnSum">
+        <i class="fas fa-chart-pie"></i> <span>Summary</span>
+      </button>
+      <button class="nav-item" onclick="switchView('settings')" id="btnSet">
+        <i class="fas fa-cloud"></i> <span>Sync</span>
+      </button>
     </nav>
-    <script src="script.js"></script>
 
+    <!-- FULLSCREEN NAME PICKER (Paid/Consumed) -->
+    <div class="modal-overlay" id="modalNamePicker">
+      <div class="modal modal-full">
+        <div class="modal-full-header">
+          <div>
+            <div
+              id="namePickerTitle"
+              style="font-weight: 800; font-size: 1.1rem"
+            >
+              Select Name
+            </div>
+            <div id="namePickerHint" style="color: #64748b; font-size: 0.85rem">
+              Tap to select
+            </div>
+          </div>
+          <button class="icon-btn" type="button" onclick="closeNamePicker()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
 
-    
-</body>
+        <div class="modal-full-body">
+          <div class="name-picker-add">
+            <input
+              type="text"
+              id="namePickerNew"
+              class="input"
+              placeholder="Type a new name..."
+            />
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="namePickerAddNew()"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
 
+          <div class="name-picker-search">
+            <i class="fas fa-search" style="opacity: 0.7"></i>
+            <input
+              type="text"
+              id="namePickerSearch"
+              class="input"
+              placeholder="Search names..."
+              oninput="renderNamePickerList()"
+            />
+          </div>
+
+          <div id="namePickerList" class="name-picker-list"></div>
+        </div>
+
+        <div class="modal-full-footer">
+          <button
+            class="btn btn-outline"
+            type="button"
+            onclick="closeNamePicker()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            type="button"
+            id="namePickerDoneBtn"
+            onclick="closeNamePicker()"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js?v=1"></script>
+  </body>
 </html>
-
-
-
-

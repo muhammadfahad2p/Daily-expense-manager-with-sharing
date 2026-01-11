@@ -5,25 +5,27 @@
 // =====================
 // --- CONSTANTS & STATE ---
 // =====================
-const DRIVE_LOGIN_KEY = 'drive_logged_in';
-const CURRENCY_SYMBOL = 'SR ';
-const TEMPLATES_KEY = 'expense_templates_v1';
+const DRIVE_LOGIN_KEY = "drive_logged_in";
+const CURRENCY_SYMBOL = "SR ";
+const TEMPLATES_KEY = "expense_templates_v1";
 
 // Keep the same filename everywhere (UI + Drive backup/restore)
-const BACKUP_FILENAME = 'expenses_backup.json';
+const BACKUP_FILENAME = "expenses_backup.json";
 
 // TODO: replace with your own credentials (Google Cloud Console)
-const CLIENT_ID = '388638798642-1vhopf07t99j77ndmn6hnf87nk8n1qlb.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyCr8iKxGBW4pSdxMi_aUchUyoHCbe0uFNs';
+const CLIENT_ID =
+  "388638798642-1vhopf07t99j77ndmn6hnf87nk8n1qlb.apps.googleusercontent.com";
+const API_KEY = "AIzaSyCr8iKxGBW4pSdxMi_aUchUyoHCbe0uFNs";
 
 // Google Drive API discovery doc
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const DISCOVERY_DOC =
+  "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
 // Use drive.file so the app only accesses files it created/opened
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-let entries = JSON.parse(localStorage.getItem('expense_data_v7')) || [];
+let entries = JSON.parse(localStorage.getItem("expense_data_v7")) || [];
 // migrate older records (pre-group)
-entries = entries.map(e => ({...e, group: (e.group || '').trim()}));
+entries = entries.map((e) => ({ ...e, group: (e.group || "").trim() }));
 let tokenClient;
 let gapiInited = false;
 let gisInited = false;
@@ -32,29 +34,34 @@ let summaryStartDate = null;
 let summaryEndDate = null;
 
 // Summary group filter (string or "__all__")
-let summaryGroup = '__all__';// =====================
+let summaryGroup = "__all__"; // =====================
 // --- LIST PERIOD STATE ---
 // =====================
-let listPeriod = 'daily'; // 'daily' | 'monthly' | 'yearly'
+let listPeriod = "daily"; // 'daily' | 'monthly' | 'yearly'
 let listCursor = new Date(); // controls which day/month/year is shown
 
-const NAMES_KEY = 'expense_names_v1';
+const NAMES_KEY = "expense_names_v1";
 
 // =====================
 // --- UTILITY FUNCTIONS ---
 // =====================
 function titleCaseWords(str) {
-  return (str || '')
+  return (str || "")
     .trim()
     .split(/\s+/)
     .filter(Boolean)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 function cleanPersonName(str) {
   // Keep your existing "title-case" behavior for names
-  return str ? str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : "";
+  return str
+    ? str
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : "";
 }
 
 function formatCurrency(amount) {
@@ -70,19 +77,26 @@ function escapeHtml(t) {
 
 function toLocalDateShort(iso) {
   try {
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
   } catch {
-    return '';
+    return "";
   }
 }
 
 // =====================
 // --- INIT ON DOM LOAD ---
 // =====================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   // Wire up a safe click handler too (so button still works if inline onclick changes)
-  const connectBtn = document.querySelector('#driveControls button');
-  if (connectBtn) connectBtn.addEventListener('click', (e) => { e.preventDefault(); handleAuthClick(); });
+  const connectBtn = document.querySelector("#driveControls button");
+  if (connectBtn)
+    connectBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleAuthClick();
+    });
 
   mergeNamesFromEntries();
   renderList();
@@ -94,13 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTemplatesList();
 
   // Pre-fill date modals
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('sumStart').value = today;
-  document.getElementById('sumEnd').value = today;
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("sumStart").value = today;
+  document.getElementById("sumEnd").value = today;
 
   // Default summary group dropdown if exists
-  const grpSel = document.getElementById('summaryGroupFilter');
-  if (grpSel) grpSel.value = '__all__';
+  const grpSel = document.getElementById("summaryGroupFilter");
+  if (grpSel) grpSel.value = "__all__";
 
   checkGoogleLoaded();
 });
@@ -108,77 +122,83 @@ document.addEventListener('DOMContentLoaded', () => {
 // =====================
 // --- RENDERING FUNCTIONS ---
 // =====================
-function startOfDay(d){
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0);
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
 }
-function endOfDay(d){
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999);
+function endOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 }
-function startOfMonth(d){
-  return new Date(d.getFullYear(), d.getMonth(), 1, 0,0,0,0);
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
 }
-function endOfMonth(d){
-  return new Date(d.getFullYear(), d.getMonth()+1, 0, 23,59,59,999);
+function endOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
-function startOfYear(d){
-  return new Date(d.getFullYear(), 0, 1, 0,0,0,0);
+function startOfYear(d) {
+  return new Date(d.getFullYear(), 0, 1, 0, 0, 0, 0);
 }
-function endOfYear(d){
-  return new Date(d.getFullYear(), 11, 31, 23,59,59,999);
+function endOfYear(d) {
+  return new Date(d.getFullYear(), 11, 31, 23, 59, 59, 999);
 }
 
-function getListPeriodBounds(){
-  if (listPeriod === 'monthly'){
+function getListPeriodBounds() {
+  if (listPeriod === "monthly") {
     return { start: startOfMonth(listCursor), end: endOfMonth(listCursor) };
   }
-  if (listPeriod === 'yearly'){
+  if (listPeriod === "yearly") {
     return { start: startOfYear(listCursor), end: endOfYear(listCursor) };
   }
   return { start: startOfDay(listCursor), end: endOfDay(listCursor) };
 }
 
-function updateDateStrip(balanceAmount){
-  const dayEl = document.getElementById('listDayNumber');
-  const monthEl = document.getElementById('listMonthYear');
-  const wkEl = document.getElementById('listWeekday');
-  const balEl = document.getElementById('listBalance');
+function updateDateStrip(balanceAmount) {
+  const dayEl = document.getElementById("listDayNumber");
+  const monthEl = document.getElementById("listMonthYear");
+  const wkEl = document.getElementById("listWeekday");
+  const balEl = document.getElementById("listBalance");
   if (!dayEl || !monthEl || !wkEl || !balEl) return; // header UI not present
 
   const d = new Date(listCursor);
-  if (listPeriod === 'daily'){
-    dayEl.textContent = String(d.getDate()).padStart(2,'0');
-    monthEl.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
-    wkEl.textContent = d.toLocaleDateString(undefined, { weekday:'long' });
-  } else if (listPeriod === 'monthly'){
-    dayEl.textContent = String(d.getMonth()+1).padStart(2,'0');
-    monthEl.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
-    wkEl.textContent = 'Monthly';
+  if (listPeriod === "daily") {
+    dayEl.textContent = String(d.getDate()).padStart(2, "0");
+    monthEl.textContent = d.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+    wkEl.textContent = d.toLocaleDateString(undefined, { weekday: "long" });
+  } else if (listPeriod === "monthly") {
+    dayEl.textContent = String(d.getMonth() + 1).padStart(2, "0");
+    monthEl.textContent = d.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+    wkEl.textContent = "Monthly";
   } else {
     const yy = String(d.getFullYear()).slice(-2);
     dayEl.textContent = yy;
-    monthEl.textContent = 'Year ' + d.getFullYear();
-    wkEl.textContent = 'Yearly';
+    monthEl.textContent = "Year " + d.getFullYear();
+    wkEl.textContent = "Yearly";
   }
 
   balEl.textContent = formatCurrency(balanceAmount || 0);
 }
 
-function setListPeriod(period){
+function setListPeriod(period) {
   listPeriod = period;
   // update tab UI
-  document.querySelectorAll('.period-tab').forEach(b => {
-    b.classList.toggle('active', (b.dataset.period === period));
+  document.querySelectorAll(".period-tab").forEach((b) => {
+    b.classList.toggle("active", b.dataset.period === period);
   });
   // keep cursor valid
   listCursor = new Date(listCursor || new Date());
   renderList();
 }
 
-function shiftListDate(delta){
+function shiftListDate(delta) {
   const d = new Date(listCursor);
-  if (listPeriod === 'monthly'){
+  if (listPeriod === "monthly") {
     d.setMonth(d.getMonth() + delta);
-  } else if (listPeriod === 'yearly'){
+  } else if (listPeriod === "yearly") {
     d.setFullYear(d.getFullYear() + delta);
   } else {
     d.setDate(d.getDate() + delta);
@@ -187,23 +207,23 @@ function shiftListDate(delta){
   renderList();
 }
 
-function openListDatePicker(){
-  if (listPeriod === 'daily'){
-    const inp = document.getElementById('listDatePicker');
+function openListDatePicker() {
+  if (listPeriod === "daily") {
+    const inp = document.getElementById("listDatePicker");
     if (!inp) return;
-    inp.value = startOfDay(listCursor).toISOString().slice(0,10);
+    inp.value = startOfDay(listCursor).toISOString().slice(0, 10);
     inp.click();
     return;
   }
-  if (listPeriod === 'monthly'){
+  if (listPeriod === "monthly") {
     openMonthPicker();
     return;
   }
   // yearly: quick prompt
-  const y = prompt('Enter year (e.g. 2026):', String(listCursor.getFullYear()));
+  const y = prompt("Enter year (e.g. 2026):", String(listCursor.getFullYear()));
   if (!y) return;
   const yr = parseInt(y, 10);
-  if (!isNaN(yr) && yr >= 1900 && yr <= 2100){
+  if (!isNaN(yr) && yr >= 1900 && yr <= 2100) {
     const d = new Date(listCursor);
     d.setFullYear(yr);
     listCursor = d;
@@ -211,11 +231,11 @@ function openListDatePicker(){
   }
 }
 
-function onListDatePicked(val){
+function onListDatePicked(val) {
   if (!val) return;
-  const [yy,mm,dd] = val.split('-').map(x => parseInt(x,10));
+  const [yy, mm, dd] = val.split("-").map((x) => parseInt(x, 10));
   if (!yy || !mm || !dd) return;
-  listCursor = new Date(yy, mm-1, dd, 12, 0, 0, 0);
+  listCursor = new Date(yy, mm - 1, dd, 12, 0, 0, 0);
   renderList();
 }
 
@@ -223,102 +243,121 @@ function onListDatePicked(val){
 // --- MONTH PICKER ---
 // =====================
 let monthPickerYear = new Date().getFullYear();
-function openMonthPicker(){
+function openMonthPicker() {
   monthPickerYear = listCursor.getFullYear();
   renderMonthPicker();
-  const modal = document.getElementById('modalMonthPicker');
-  if (modal) modal.classList.add('active');
+  const modal = document.getElementById("modalMonthPicker");
+  if (modal) modal.classList.add("active");
 }
-function shiftMonthPicker(deltaYears){
+function shiftMonthPicker(deltaYears) {
   monthPickerYear += deltaYears;
   renderMonthPicker();
 }
-function renderMonthPicker(){
-  const yearEl = document.getElementById('monthPickerYear');
-  const grid = document.getElementById('monthGrid');
+function renderMonthPicker() {
+  const yearEl = document.getElementById("monthPickerYear");
+  const grid = document.getElementById("monthGrid");
   if (!yearEl || !grid) return;
   yearEl.textContent = String(monthPickerYear);
   const activeMonth = listCursor.getMonth();
   const activeYear = listCursor.getFullYear();
-  const months = Array.from({length:12}, (_,i) => new Date(2000, i, 1).toLocaleDateString(undefined, { month:'short' }));
-  grid.innerHTML = months.map((m,i) => {
-    const active = (activeYear === monthPickerYear && activeMonth === i) ? 'active' : '';
-    return `<button class="month-btn ${active}" type="button" onclick="pickMonth(${i})">${m}</button>`;
-  }).join('');
+  const months = Array.from({ length: 12 }, (_, i) =>
+    new Date(2000, i, 1).toLocaleDateString(undefined, { month: "short" })
+  );
+  grid.innerHTML = months
+    .map((m, i) => {
+      const active =
+        activeYear === monthPickerYear && activeMonth === i ? "active" : "";
+      return `<button class="month-btn ${active}" type="button" onclick="pickMonth(${i})">${m}</button>`;
+    })
+    .join("");
 }
-function pickMonth(monthIdx){
+function pickMonth(monthIdx) {
   const d = new Date(listCursor);
   d.setFullYear(monthPickerYear);
   d.setMonth(monthIdx);
   listCursor = d;
-  closeModal('modalMonthPicker');
+  closeModal("modalMonthPicker");
   renderList();
 }
 
 // =====================
 // --- NAMES CATALOG (Paid/Consumed dropdowns) ---
 // =====================
-function loadNamesCatalog(){
-  try{
+function loadNamesCatalog() {
+  try {
     const raw = localStorage.getItem(NAMES_KEY);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr.filter(Boolean).map(cleanPersonName) : [];
-  }catch{
+  } catch {
     return [];
   }
 }
-function saveNamesCatalog(arr){
-  const uniq = Array.from(new Set((arr||[]).map(cleanPersonName).filter(Boolean))).sort();
+function saveNamesCatalog(arr) {
+  const uniq = Array.from(
+    new Set((arr || []).map(cleanPersonName).filter(Boolean))
+  ).sort();
   localStorage.setItem(NAMES_KEY, JSON.stringify(uniq));
   renderNameDropdownLists();
 }
-function mergeNamesFromEntries(){
+function mergeNamesFromEntries() {
   const names = new Set(loadNamesCatalog());
-  entries.forEach(e => {
-    (e.paidBy || '').split(',').forEach(x => { const v = cleanPersonName(x); if (v) names.add(v); });
-    (e.consumedBy || '').split(',').forEach(x => { const v = cleanPersonName(x); if (v) names.add(v); });
+  entries.forEach((e) => {
+    (e.paidBy || "").split(",").forEach((x) => {
+      const v = cleanPersonName(x);
+      if (v) names.add(v);
+    });
+    (e.consumedBy || "").split(",").forEach((x) => {
+      const v = cleanPersonName(x);
+      if (v) names.add(v);
+    });
   });
   saveNamesCatalog([...names]);
 }
-function addNameFromInput(which){
-  const inp = document.getElementById(which === 'paid' ? 'paidNewName' : 'consumedNewName');
+function addNameFromInput(which) {
+  const inp = document.getElementById(
+    which === "paid" ? "paidNewName" : "consumedNewName"
+  );
   if (!inp) return;
-  const name = cleanPersonName(inp.value || '');
+  const name = cleanPersonName(inp.value || "");
   if (!name) return;
   const names = loadNamesCatalog();
   names.push(name);
   saveNamesCatalog(names);
-  inp.value = '';
+  inp.value = "";
 }
 
-function toggleNameDropdown(which, forceClose=false){
-  const panelId = which === 'paid' ? 'paidPanel' : 'consumedPanel';
+function toggleNameDropdown(which, forceClose = false) {
+  const panelId = which === "paid" ? "paidPanel" : "consumedPanel";
   const panel = document.getElementById(panelId);
   if (!panel) return;
-  const isOpen = !panel.classList.contains('hidden');
-  if (forceClose || isOpen){
-    panel.classList.add('hidden');
+  const isOpen = !panel.classList.contains("hidden");
+  if (forceClose || isOpen) {
+    panel.classList.add("hidden");
     return;
   }
   // close the other
-  const other = document.getElementById(which === 'paid' ? 'consumedPanel' : 'paidPanel');
-  if (other) other.classList.add('hidden');
+  const other = document.getElementById(
+    which === "paid" ? "consumedPanel" : "paidPanel"
+  );
+  if (other) other.classList.add("hidden");
   renderNameDropdownLists();
-  panel.classList.remove('hidden');
+  panel.classList.remove("hidden");
 }
 
-function renderNameDropdownLists(){
+function renderNameDropdownLists() {
   const names = loadNamesCatalog();
 
   // Paid (radio)
-  const paidList = document.getElementById('paidList');
-  const paidHidden = document.getElementById('inpPaid');
-  const paidDisplay = document.getElementById('paidDisplay');
-  if (paidList && paidHidden && paidDisplay){
-    const selected = cleanPersonName(paidHidden.value || '');
-    paidList.innerHTML = names.map(n => {
-      const checked = (cleanPersonName(n) === selected) ? 'checked' : '';
-      return `
+  const paidList = document.getElementById("paidList");
+  const paidHidden = document.getElementById("inpPaid");
+  const paidDisplay = document.getElementById("paidDisplay");
+  if (paidList && paidHidden && paidDisplay) {
+    const selected = cleanPersonName(paidHidden.value || "");
+    paidList.innerHTML =
+      names
+        .map((n) => {
+          const checked = cleanPersonName(n) === selected ? "checked" : "";
+          return `
         <label class="name-opt" onclick="selectPaidName('${escapeHtml(n)}')">
           <span class="left">
             <input type="radio" name="paidRadio" ${checked} />
@@ -326,107 +365,128 @@ function renderNameDropdownLists(){
           </span>
         </label>
       `;
-    }).join('') || '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
-    paidDisplay.textContent = selected || 'Select / Add';
+        })
+        .join("") ||
+      '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
+    paidDisplay.textContent = selected || "Select / Add";
   }
 
   // Consumed (checkboxes)
-  const consList = document.getElementById('consumedList');
-  const consHidden = document.getElementById('inpConsumed');
-  const consDisplay = document.getElementById('consumedDisplay');
-  if (consList && consHidden && consDisplay){
-    const selectedArr = (consHidden.value || '').split(',').map(cleanPersonName).filter(Boolean);
+  const consList = document.getElementById("consumedList");
+  const consHidden = document.getElementById("inpConsumed");
+  const consDisplay = document.getElementById("consumedDisplay");
+  if (consList && consHidden && consDisplay) {
+    const selectedArr = (consHidden.value || "")
+      .split(",")
+      .map(cleanPersonName)
+      .filter(Boolean);
     const selectedSet = new Set(selectedArr);
-    consList.innerHTML = names.map(n => {
-      const chk = selectedSet.has(cleanPersonName(n)) ? 'checked' : '';
-      return `
+    consList.innerHTML =
+      names
+        .map((n) => {
+          const chk = selectedSet.has(cleanPersonName(n)) ? "checked" : "";
+          return `
         <label class="name-opt">
           <span class="left">
-            <input type="checkbox" ${chk} onchange="toggleConsumedName('${escapeHtml(n)}', this.checked)" />
+            <input type="checkbox" ${chk} onchange="toggleConsumedName('${escapeHtml(
+            n
+          )}', this.checked)" />
             <span class="lbl">${escapeHtml(n)}</span>
           </span>
         </label>
       `;
-    }).join('') || '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
-    consDisplay.textContent = selectedArr.length ? selectedArr.join(', ') : 'Select / Add';
+        })
+        .join("") ||
+      '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
+    consDisplay.textContent = selectedArr.length
+      ? selectedArr.join(", ")
+      : "Select / Add";
   }
 }
 
-function selectPaidName(name){
-  const paidHidden = document.getElementById('inpPaid');
+function selectPaidName(name) {
+  const paidHidden = document.getElementById("inpPaid");
   if (!paidHidden) return;
   paidHidden.value = cleanPersonName(name);
   renderNameDropdownLists();
   // close panel after selection
-  const panel = document.getElementById('paidPanel');
-  if (panel) panel.classList.add('hidden');
+  const panel = document.getElementById("paidPanel");
+  if (panel) panel.classList.add("hidden");
 }
 
-function toggleConsumedName(name, isChecked){
-  const consHidden = document.getElementById('inpConsumed');
+function toggleConsumedName(name, isChecked) {
+  const consHidden = document.getElementById("inpConsumed");
   if (!consHidden) return;
-  let arr = (consHidden.value || '').split(',').map(cleanPersonName).filter(Boolean);
+  let arr = (consHidden.value || "")
+    .split(",")
+    .map(cleanPersonName)
+    .filter(Boolean);
   const n = cleanPersonName(name);
-  if (isChecked){
+  if (isChecked) {
     if (!arr.includes(n)) arr.push(n);
   } else {
-    arr = arr.filter(x => x !== n);
+    arr = arr.filter((x) => x !== n);
   }
-  consHidden.value = arr.join(', ');
+  consHidden.value = arr.join(", ");
   renderNameDropdownLists();
 }
 
 // Close dropdown panels if user taps outside
-document.addEventListener('click', (e) => {
-  const paid = document.getElementById('paidDropdown');
-  const cons = document.getElementById('consumedDropdown');
+document.addEventListener("click", (e) => {
+  const paid = document.getElementById("paidDropdown");
+  const cons = document.getElementById("consumedDropdown");
   if (paid && paid.contains(e.target)) return;
   if (cons && cons.contains(e.target)) return;
-  const p = document.getElementById('paidPanel'); if (p) p.classList.add('hidden');
-  const c = document.getElementById('consumedPanel'); if (c) c.classList.add('hidden');
+  const p = document.getElementById("paidPanel");
+  if (p) p.classList.add("hidden");
+  const c = document.getElementById("consumedPanel");
+  if (c) c.classList.add("hidden");
 });
 
 function renderList() {
-  const container = document.getElementById('listContainer');
-  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  const type = document.getElementById('searchType')?.value || 'all';
+  const container = document.getElementById("listContainer");
+  const search = (
+    document.getElementById("searchInput")?.value || ""
+  ).toLowerCase();
+  const type = document.getElementById("searchType")?.value || "all";
 
   // grand total (always all-time, not affected by period selection)
   const grandTotal = entries.reduce((s, e) => s + parseFloat(e.price || 0), 0);
-  const headerTotalEl = document.getElementById('headerTotal');
+  const headerTotalEl = document.getElementById("headerTotal");
   if (headerTotalEl) headerTotalEl.innerText = formatCurrency(grandTotal);
 
   let data = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // List group filter
-  const grpSel = document.getElementById('listGroupFilter');
-  const listGroup = grpSel ? (grpSel.value || '__all__') : '__all__';
-  if (listGroup !== '__all__') {
-    data = data.filter(e => (e.group || '').trim() === listGroup);
+  const grpSel = document.getElementById("listGroupFilter");
+  const listGroup = grpSel ? grpSel.value || "__all__" : "__all__";
+  if (listGroup !== "__all__") {
+    data = data.filter((e) => (e.group || "").trim() === listGroup);
   }
 
   // Period filter
   const { start, end } = getListPeriodBounds();
-  data = data.filter(e => {
+  data = data.filter((e) => {
     const d = new Date(e.date);
     return d >= start && d <= end;
   });
 
   // Search filter
   if (search) {
-    data = data.filter(e => {
-      const itemMatch = (e.item || '').toLowerCase().includes(search);
-      const paidMatch = (e.paidBy || '').toLowerCase().includes(search);
-      const consMatch = (e.consumedBy || '').toLowerCase().includes(search);
-      const groupMatch = (e.group || '').toLowerCase().includes(search);
-      const priceMatch = (String(e.price ?? '')).includes(search);
+    data = data.filter((e) => {
+      const itemMatch = (e.item || "").toLowerCase().includes(search);
+      const paidMatch = (e.paidBy || "").toLowerCase().includes(search);
+      const consMatch = (e.consumedBy || "").toLowerCase().includes(search);
+      const groupMatch = (e.group || "").toLowerCase().includes(search);
+      const priceMatch = String(e.price ?? "").includes(search);
 
-      if (type === 'all') return itemMatch || paidMatch || consMatch || groupMatch || priceMatch;
-      if (type === 'item') return itemMatch;
-      if (type === 'paid') return paidMatch;
-      if (type === 'consumed') return consMatch;
-      if (type === 'group') return groupMatch;
-      if (type === 'price') return priceMatch;
+      if (type === "all")
+        return itemMatch || paidMatch || consMatch || groupMatch || priceMatch;
+      if (type === "item") return itemMatch;
+      if (type === "paid") return paidMatch;
+      if (type === "consumed") return consMatch;
+      if (type === "group") return groupMatch;
+      if (type === "price") return priceMatch;
       return false;
     });
   }
@@ -441,12 +501,19 @@ function renderList() {
     return;
   }
 
-  container.innerHTML = data.map(e => {
-    const groupPill = e.group ? `<span class="pill" style="background:#f1f5f9;color:#0f172a;">${escapeHtml(e.group)}</span>` : '';
-    const descRow = (e.desc || '').trim()
-      ? `<div class="card-row-3"><span class="card-desc">${escapeHtml(e.desc)}</span></div>`
-      : '';
-    return `
+  container.innerHTML = data
+    .map((e) => {
+      const groupPill = e.group
+        ? `<span class="pill" style="background:#f1f5f9;color:#0f172a;">${escapeHtml(
+            e.group
+          )}</span>`
+        : "";
+      const descRow = (e.desc || "").trim()
+        ? `<div class="card-row-3"><span class="card-desc">${escapeHtml(
+            e.desc
+          )}</span></div>`
+        : "";
+      return `
       <div class="card" onclick="editEntry(${e.id})">
         <div class="card-row-1">
           <span class="card-title">${escapeHtml(e.item)}</span>
@@ -461,123 +528,168 @@ function renderList() {
             ${groupPill}
             <span class="pill">${escapeHtml(e.paidBy)}</span>
             <i class="fas fa-arrow-right" style="font-size:0.7rem"></i>
-            <span style="max-width:110px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(e.consumedBy)}</span>
+            <span style="max-width:110px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(
+              e.consumedBy
+            )}</span>
           </div>
         </div>
         ${descRow}
       </div>
     `;
-  }).join('');
+    })
+    .join("");
 }
 
 function renderMap(map) {
-  return Object.keys(map).sort().map(k => {
-    if (map[k] < 0.01) return '';
-    return `<div class="stat-row"><span>${k}</span><span>${formatCurrency(map[k])}</span></div>`;
-  }).join('') || '<div style="text-align:center; color:#ccc">-</div>';
+  return (
+    Object.keys(map)
+      .sort()
+      .map((k) => {
+        if (map[k] < 0.01) return "";
+        return `<div class="stat-row"><span>${k}</span><span>${formatCurrency(
+          map[k]
+        )}</span></div>`;
+      })
+      .join("") || '<div style="text-align:center; color:#ccc">-</div>'
+  );
 }
 
 // =====================
 // --- SUMMARY FUNCTIONS ---
 // =====================
 function openDateModal() {
-  document.getElementById('modalDateFilter').classList.add('active');
+  document.getElementById("modalDateFilter").classList.add("active");
 }
 
 function applyDateFilter() {
-  const sVal = document.getElementById('sumStart').value;
-  const eVal = document.getElementById('sumEnd').value;
+  const sVal = document.getElementById("sumStart").value;
+  const eVal = document.getElementById("sumEnd").value;
 
   if (sVal && eVal) {
     summaryStartDate = new Date(sVal);
     summaryEndDate = new Date(eVal);
     summaryEndDate.setHours(23, 59, 59);
 
-    const fmtStart = summaryStartDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    const fmtEnd = summaryEndDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    document.getElementById('currentRangeDisplay').innerText = `${fmtStart} - ${fmtEnd}`;
+    const fmtStart = summaryStartDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const fmtEnd = summaryEndDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    document.getElementById(
+      "currentRangeDisplay"
+    ).innerText = `${fmtStart} - ${fmtEnd}`;
 
     calculateSummary();
-    closeModal('modalDateFilter');
+    closeModal("modalDateFilter");
   } else {
     alert("Please select both start and end dates");
   }
 }
 
 function resetDates() {
-  document.getElementById('sumStart').value = new Date().toISOString().split('T')[0];
-  document.getElementById('sumEnd').value = new Date().toISOString().split('T')[0];
+  document.getElementById("sumStart").value = new Date()
+    .toISOString()
+    .split("T")[0];
+  document.getElementById("sumEnd").value = new Date()
+    .toISOString()
+    .split("T")[0];
   summaryStartDate = null;
   summaryEndDate = null;
-  document.getElementById('currentRangeDisplay').innerText = "All Time";
+  document.getElementById("currentRangeDisplay").innerText = "All Time";
   calculateSummary();
 }
 
 function refreshSummaryGroupDropdown() {
-  const sel = document.getElementById('summaryGroupFilter');
+  const sel = document.getElementById("summaryGroupFilter");
   if (!sel) return;
 
-  const existing = sel.value || '__all__';
+  const existing = sel.value || "__all__";
 
-  const groups = Array.from(new Set(entries.map(e => (e.group || '').trim()).filter(Boolean))).sort();
-  sel.innerHTML = `<option value="__all__">All Groups</option>` + groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  const groups = Array.from(
+    new Set(entries.map((e) => (e.group || "").trim()).filter(Boolean))
+  ).sort();
+  sel.innerHTML =
+    `<option value="__all__">All Groups</option>` +
+    groups
+      .map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`)
+      .join("");
   // restore selection
-  if ([...sel.options].some(o => o.value === existing)) sel.value = existing;
-  else sel.value = '__all__';
+  if ([...sel.options].some((o) => o.value === existing)) sel.value = existing;
+  else sel.value = "__all__";
 }
 
 function refreshListGroupDropdown() {
-  const sel = document.getElementById('listGroupFilter');
+  const sel = document.getElementById("listGroupFilter");
   if (!sel) return;
 
-  const existing = sel.value || '__all__';
-  const groups = Array.from(new Set(entries.map(e => (e.group || '').trim()).filter(Boolean))).sort();
-  sel.innerHTML = `<option value="__all__">All Groups</option>` + groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  const existing = sel.value || "__all__";
+  const groups = Array.from(
+    new Set(entries.map((e) => (e.group || "").trim()).filter(Boolean))
+  ).sort();
+  sel.innerHTML =
+    `<option value="__all__">All Groups</option>` +
+    groups
+      .map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`)
+      .join("");
 
-  if ([...sel.options].some(o => o.value === existing)) sel.value = existing;
-  else sel.value = '__all__';
+  if ([...sel.options].some((o) => o.value === existing)) sel.value = existing;
+  else sel.value = "__all__";
 }
-
 
 function calculateSummary() {
   // Read summary group from dropdown if exists
-  const sel = document.getElementById('summaryGroupFilter');
-  if (sel) summaryGroup = sel.value || '__all__';
+  const sel = document.getElementById("summaryGroupFilter");
+  if (sel) summaryGroup = sel.value || "__all__";
 
   let data = entries;
 
   // Apply date filter
   if (summaryStartDate && summaryEndDate) {
-    data = data.filter(x => {
+    data = data.filter((x) => {
       const d = new Date(x.date);
       return d >= summaryStartDate && d <= summaryEndDate;
     });
   }
 
   // Apply group filter
-  if (summaryGroup && summaryGroup !== '__all__') {
-    data = data.filter(x => (x.group || '').trim() === summaryGroup);
+  if (summaryGroup && summaryGroup !== "__all__") {
+    data = data.filter((x) => (x.group || "").trim() === summaryGroup);
   }
 
   const paidTotals = {};
   const consTotals = {};
   const debts = {};
 
-  data.forEach(entry => {
+  data.forEach((entry) => {
     const price = parseFloat(entry.price);
-    const payers = (entry.paidBy || '').split(/[,&|]+/).map(cleanPersonName).filter(n => n);
-    const consumers = (entry.consumedBy || '').split(/[,&|]+/).map(cleanPersonName).filter(n => n);
+    const payers = (entry.paidBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter((n) => n);
+    const consumers = (entry.consumedBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter((n) => n);
     if (payers.length === 0 || consumers.length === 0 || !(price > 0)) return;
 
     const amountPerPayer = price / payers.length;
     const amountPerConsumer = price / consumers.length;
 
-    payers.forEach(p => { paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer; });
-    consumers.forEach(c => { consTotals[c] = (consTotals[c] || 0) + amountPerConsumer; });
+    payers.forEach((p) => {
+      paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer;
+    });
+    consumers.forEach((c) => {
+      consTotals[c] = (consTotals[c] || 0) + amountPerConsumer;
+    });
 
     const debtPerPayer = amountPerConsumer / payers.length;
-    consumers.forEach(c => {
-      payers.forEach(p => {
+    consumers.forEach((c) => {
+      payers.forEach((p) => {
         if (c !== p) {
           if (!debts[c]) debts[c] = {};
           debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
@@ -586,15 +698,18 @@ function calculateSummary() {
     });
   });
 
-  document.getElementById('paidArea').innerHTML = renderMap(paidTotals);
-  document.getElementById('consumedArea').innerHTML = renderMap(consTotals);
+  document.getElementById("paidArea").innerHTML = renderMap(paidTotals);
+  document.getElementById("consumedArea").innerHTML = renderMap(consTotals);
 
   // Simplify pairwise debts
   const settlements = [];
-  const people = Array.from(new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)]));
+  const people = Array.from(
+    new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)])
+  );
   for (let i = 0; i < people.length; i++) {
     for (let j = i + 1; j < people.length; j++) {
-      const p1 = people[i], p2 = people[j];
+      const p1 = people[i],
+        p2 = people[j];
       const d1 = (debts[p1] && debts[p1][p2]) || 0;
       const d2 = (debts[p2] && debts[p2][p1]) || 0;
       const net = d1 - d2;
@@ -603,66 +718,129 @@ function calculateSummary() {
     }
   }
 
-  document.getElementById('settlementArea').innerHTML = settlements.length
-    ? settlements.map(s => `<div class="settle-item"><i class="fas fa-check-circle"></i> ${s.from} pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`).join('')
+  document.getElementById("settlementArea").innerHTML = settlements.length
+    ? settlements
+        .map(
+          (s) =>
+            `<div class="settle-item"><i class="fas fa-check-circle"></i> ${
+              s.from
+            } pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`
+        )
+        .join("")
     : `<div style="text-align:center; color:#94a3b8;">All Settled</div>`;
 }
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function setDateTimeLocalNow(inputId) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+
+  const now = new Date();
+  now.setSeconds(0, 0);
+
+  const yyyy = now.getFullYear();
+  const mm = pad2(now.getMonth() + 1);
+  const dd = pad2(now.getDate());
+  const hh = pad2(now.getHours());
+  const mi = pad2(now.getMinutes());
+
+  el.value = `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+document.getElementById("inpDate").addEventListener("input", () => {
+  console.trace(
+    "inpDate changed to:",
+    document.getElementById("inpDate").value
+  );
+});
 
 // =====================
 // --- CRUD FUNCTIONS ---
 // =====================
 function openEntryModal() {
-  document.getElementById('modalTitle').innerText = "Add Expense";
-  document.getElementById('entryId').value = "";
-  document.getElementById('inpDate').value = (document.getElementById('viewList')?.classList.contains('active') && listPeriod==='daily')
-    ? new Date(startOfDay(listCursor)).toISOString().slice(0,16)
-    : new Date().toISOString().slice(0, 16);
-  document.getElementById('inpItem').value = "";
-  document.getElementById('inpPrice').value = "";
-  const grp = document.getElementById('inpGroup');
+  document.getElementById("modalTitle").innerText = "Add Expense";
+  document.getElementById("entryId").value = "";
+
+  document.getElementById("inpItem").value = "";
+  document.getElementById("inpPrice").value = "";
+
+  const grp = document.getElementById("inpGroup");
   if (grp) grp.value = "";
-  document.getElementById('inpPaid').value = "";
-  document.getElementById('inpConsumed').value = "";
+
+  document.getElementById("inpPaid").value = "";
+  document.getElementById("inpConsumed").value = "";
   renderNameDropdownLists();
-  document.getElementById('inpDesc').value = "";
-  document.getElementById('editTools').classList.add('hidden');
-  document.getElementById('modalEntry').classList.add('active');
+  const cPanel = document.getElementById("consumedPanel");
+  if (cPanel) cPanel.classList.add("hidden");
+
+  document.getElementById("inpDesc").value = "";
+  document.getElementById("editTools").classList.add("hidden");
+
+  document.getElementById("modalEntry").classList.add("active");
+
+  // ✅ set NOW immediately
+  setDateTimeLocalNow("inpDate");
+
+  // ✅ set NOW again after everything finishes (prevents overwrite)
+  setTimeout(() => setDateTimeLocalNow("inpDate"), 50);
 }
 
 function editEntry(id) {
-  const e = entries.find(x => x.id === id);
+  const e = entries.find((x) => x.id === id);
   if (!e) return;
-  document.getElementById('modalTitle').innerText = "Edit Expense";
-  document.getElementById('entryId').value = e.id;
-  document.getElementById('inpDate').value = String(e.date || '').slice(0, 16);
-  document.getElementById('inpItem').value = e.item || '';
-  document.getElementById('inpPrice').value = e.price ?? '';
-  const grp = document.getElementById('inpGroup');
-  if (grp) grp.value = e.group || '';
-  document.getElementById('inpPaid').value = e.paidBy || '';
-  document.getElementById('inpConsumed').value = e.consumedBy || '';
+  document.getElementById("modalTitle").innerText = "Edit Expense";
+  document.getElementById("entryId").value = e.id;
+  document.getElementById("inpDate").value = isoToLocalDateTimeValue(e.date);
+
+  document.getElementById("inpItem").value = e.item || "";
+  document.getElementById("inpPrice").value = e.price ?? "";
+  const grp = document.getElementById("inpGroup");
+  if (grp) grp.value = e.group || "";
+  document.getElementById("inpPaid").value = e.paidBy || "";
+  document.getElementById("inpConsumed").value = e.consumedBy || "";
   renderNameDropdownLists();
-  document.getElementById('inpDesc').value = e.desc || "";
-  document.getElementById('editTools').classList.remove('hidden');
-  document.getElementById('modalEntry').classList.add('active');
+  document.getElementById("inpDesc").value = e.desc || "";
+  document.getElementById("editTools").classList.remove("hidden");
+  document.getElementById("modalEntry").classList.add("active");
+}
+
+function isoToLocalDateTimeValue(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "";
+
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad2(d.getMonth() + 1);
+  const dd = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const mi = pad2(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
 function saveEntry() {
-  const id = document.getElementById('entryId').value;
-  const dateStr = document.getElementById('inpDate').value;
-  const item = document.getElementById('inpItem').value.trim();
-  const price = parseFloat(document.getElementById('inpPrice').value);
-  const group = titleCaseWords((document.getElementById('inpGroup')?.value || '')).trim();
+  const id = document.getElementById("entryId").value;
+  const dateStr = document.getElementById("inpDate").value;
+  const item = document.getElementById("inpItem").value.trim();
+  const price = parseFloat(document.getElementById("inpPrice").value);
+  const group = titleCaseWords(
+    document.getElementById("inpGroup")?.value || ""
+  ).trim();
 
-  const paidBy = cleanPersonName(document.getElementById('inpPaid').value || '');
+  const paidBy = cleanPersonName(
+    document.getElementById("inpPaid").value || ""
+  );
 
-  const consumedBy = (document.getElementById('inpConsumed').value || '')
-    .split(',')
+  const consumedBy = (document.getElementById("inpConsumed").value || "")
+    .split(",")
     .map(cleanPersonName)
-    .filter(n => n)
-    .join(', ');
+    .filter((n) => n)
+    .join(", ");
 
-  const desc = document.getElementById('inpDesc').value;
+  const desc = document.getElementById("inpDesc").value;
 
   if (!dateStr || !item || isNaN(price) || !paidBy || !consumedBy) {
     alert("Please fill in Date, Item, Price, and Names.");
@@ -672,7 +850,11 @@ function saveEntry() {
   // Ensure catalog learns any new names
   const _names = new Set(loadNamesCatalog());
   if (paidBy) _names.add(cleanPersonName(paidBy));
-  (consumedBy || '').split(',').map(cleanPersonName).filter(Boolean).forEach(n => _names.add(n));
+  (consumedBy || "")
+    .split(",")
+    .map(cleanPersonName)
+    .filter(Boolean)
+    .forEach((n) => _names.add(n));
   saveNamesCatalog([..._names]);
 
   const obj = {
@@ -683,11 +865,11 @@ function saveEntry() {
     paidBy,
     consumedBy,
     group,
-    desc
+    desc,
   };
 
   if (id) {
-    const idx = entries.findIndex(x => x.id == id);
+    const idx = entries.findIndex((x) => x.id == id);
     if (idx > -1) entries[idx] = obj;
   } else {
     entries.push(obj);
@@ -696,54 +878,59 @@ function saveEntry() {
   persist();
   refreshSummaryGroupDropdown();
   refreshListGroupDropdown();
-  closeModal('modalEntry');
+  closeModal("modalEntry");
   renderList();
 }
 
 function deleteEntry() {
   if (!confirm("Delete record?")) return;
-  const idStr = (document.getElementById('entryId').value || '').trim();
-  if (!idStr) { alert('No record selected.'); return; }
+  const idStr = (document.getElementById("entryId").value || "").trim();
+  if (!idStr) {
+    alert("No record selected.");
+    return;
+  }
   const id = parseInt(idStr);
-  entries = entries.filter(x => x.id !== id);
+  entries = entries.filter((x) => x.id !== id);
   persist();
   refreshSummaryGroupDropdown();
   refreshListGroupDropdown();
-  closeModal('modalEntry');
+  closeModal("modalEntry");
   renderList();
-
 }
 
 // Copy button: open a centered date picker modal (mobile friendly)
 let _copySourceId = null;
 
 function triggerCopy() {
-  const idVal = document.getElementById('entryId').value;
+  const idVal = document.getElementById("entryId").value;
   if (!idVal) {
-    alert('Open a record first, then tap Copy.');
+    alert("Open a record first, then tap Copy.");
     return;
   }
+
   _copySourceId = parseInt(idVal);
 
-  const picker = document.getElementById('copyDatePicker');
+  const picker = document.getElementById("copyDatePicker");
   if (picker) {
-    picker.value = new Date().toISOString().split('T')[0];
+    picker.value = new Date().toISOString().split("T")[0];
   }
-  document.getElementById('modalCopyDate').classList.add('active');
+
+  // ✅ Open Copy Date modal
+  document.getElementById("modalCopyDate").classList.add("active");
 }
 
 function confirmCopyWithDate() {
-  const picker = document.getElementById('copyDatePicker');
-  const dateVal = picker ? picker.value : '';
+  const picker = document.getElementById("copyDatePicker");
+  const dateVal = picker ? picker.value : "";
   if (!dateVal) {
-    alert('Please select a date.');
+    alert("Please select a date.");
     return;
   }
 
-  const src = entries.find(x => x.id == _copySourceId);
+  const src = entries.find((x) => x.id == _copySourceId);
   if (!src) {
-    alert('Could not find the record to copy.');
-    closeModal('modalCopyDate');
+    alert("Could not find the record to copy.");
+    closeModal("modalCopyDate");
     return;
   }
 
@@ -760,12 +947,16 @@ function confirmCopyWithDate() {
   refreshListGroupDropdown();
   renderList();
 
-  closeModal('modalCopyDate');
+  closeModal("modalCopyDate");
+  closeModal("modalEntry");
+
   // Open the copied record so user can edit and then tap Save Record
   editEntry(newId);
 
   // tiny feedback
-  alert('Copied! You can edit and Save Record.');
+  alert("Copied! You can edit and Save Record.");
+  closeModal("modalCopyDate");
+  closeModal("modalEntry");
 }
 
 // Kept for backward compatibility (HTML still has #copyDateInput)
@@ -789,16 +980,18 @@ function handleFileSelect(input) {
 }
 
 function importCSV(csvText) {
-  const lines = csvText.split('\n');
+  const lines = csvText.split("\n");
   let count = 0;
-  const startIndex = lines[0]?.toLowerCase().includes('date') ? 1 : 0;
+  const startIndex = lines[0]?.toLowerCase().includes("date") ? 1 : 0;
 
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
     const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-    const cols = matches ? matches.map(m => m.replace(/^"|"$/g, '')) : line.split(',');
+    const cols = matches
+      ? matches.map((m) => m.replace(/^"|"$/g, ""))
+      : line.split(",");
 
     // Expect: Date, Item, Price, PaidBy, ConsumedBy, (optional) Description, (optional) Group
     if (cols.length >= 5) {
@@ -816,10 +1009,18 @@ function importCSV(csvText) {
           date: d.toISOString(),
           item,
           price,
-          paidBy: paidBy.split(/[,&|]+/).map(cleanPersonName).filter(Boolean).join(', '),
-          consumedBy: consumedBy.split(/[,&|]+/).map(cleanPersonName).filter(Boolean).join(', '),
+          paidBy: paidBy
+            .split(/[,&|]+/)
+            .map(cleanPersonName)
+            .filter(Boolean)
+            .join(", "),
+          consumedBy: consumedBy
+            .split(/[,&|]+/)
+            .map(cleanPersonName)
+            .filter(Boolean)
+            .join(", "),
           group: titleCaseWords(group),
-          desc: desc.trim()
+          desc: desc.trim(),
         });
         count++;
       }
@@ -829,7 +1030,7 @@ function importCSV(csvText) {
   if (count > 0) {
     persist();
     refreshSummaryGroupDropdown();
-  refreshListGroupDropdown();
+    refreshListGroupDropdown();
     alert(`Successfully imported ${count} records!`);
     renderList();
   } else {
@@ -838,45 +1039,53 @@ function importCSV(csvText) {
 }
 
 function executeExport(type) {
-  const sVal = document.getElementById('expStart').value;
-  const eVal = document.getElementById('expEnd').value;
+  const sVal = document.getElementById("expStart").value;
+  const eVal = document.getElementById("expEnd").value;
 
   let data = entries;
   if (sVal && eVal) {
     const s = new Date(sVal);
     const e = new Date(eVal);
     e.setHours(23, 59, 59, 999);
-    data = entries.filter(x => {
+    data = entries.filter((x) => {
       const d = new Date(x.date);
       return d >= s && d <= e;
     });
   }
 
   let csv = "Date,Item,Price,PaidBy,ConsumedBy,Description,Group\n";
-  data.forEach(r => {
+  data.forEach((r) => {
     const d = new Date(r.date).toLocaleDateString();
-    csv += `${d},"${(r.item || '').replace(/"/g, '""')}",${r.price},"${(r.paidBy || '').replace(/"/g, '""')}","${(r.consumedBy || '').replace(/"/g, '""')}","${(r.desc || '').replace(/"/g, '""')}","${(r.group || '').replace(/"/g, '""')}"\n`;
+    csv += `${d},"${(r.item || "").replace(/"/g, '""')}",${r.price},"${(
+      r.paidBy || ""
+    ).replace(/"/g, '""')}","${(r.consumedBy || "").replace(/"/g, '""')}","${(
+      r.desc || ""
+    ).replace(/"/g, '""')}","${(r.group || "").replace(/"/g, '""')}"\n`;
   });
 
-  const file = new File([csv], "expenses.csv", { type: 'text/csv' });
+  const file = new File([csv], "expenses.csv", { type: "text/csv" });
 
-  if (type === 'share' && navigator.canShare && navigator.canShare({ files: [file] })) {
+  if (
+    type === "share" &&
+    navigator.canShare &&
+    navigator.canShare({ files: [file] })
+  ) {
     navigator.share({ files: [file] });
   } else {
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(file);
-    a.download = 'expenses.csv';
+    a.download = "expenses.csv";
     a.click();
   }
 
-  closeModal('modalExport');
+  closeModal("modalExport");
 }
 
 // =====================
 // --- LOCAL STORAGE ---
 // =====================
 function persist() {
-  localStorage.setItem('expense_data_v7', JSON.stringify(entries));
+  localStorage.setItem("expense_data_v7", JSON.stringify(entries));
   populateNamesAndGroups();
 }
 
@@ -885,66 +1094,85 @@ function populateNamesAndGroups() {
   const names = new Set();
   const groups = new Set();
 
-  entries.forEach(e => {
-    (e.paidBy || '').split(',').forEach(x => { const v = x.trim(); if (v) names.add(v); });
-    (e.consumedBy || '').split(',').forEach(x => { const v = x.trim(); if (v) names.add(v); });
-    const g = (e.group || '').trim();
+  entries.forEach((e) => {
+    (e.paidBy || "").split(",").forEach((x) => {
+      const v = x.trim();
+      if (v) names.add(v);
+    });
+    (e.consumedBy || "").split(",").forEach((x) => {
+      const v = x.trim();
+      if (v) names.add(v);
+    });
+    const g = (e.group || "").trim();
     if (g) groups.add(g);
   });
 
-  const namesList = document.getElementById('namesList');
-  if (namesList) namesList.innerHTML = '';
+  const namesList = document.getElementById("namesList");
+  if (namesList) namesList.innerHTML = "";
 
-  const groupsList = document.getElementById('groupsList');
-  if (groupsList) groupsList.innerHTML = [...groups].sort().map(g => `<option value="${escapeHtml(g)}">`).join('');
+  const groupsList = document.getElementById("groupsList");
+  if (groupsList)
+    groupsList.innerHTML = [...groups]
+      .sort()
+      .map((g) => `<option value="${escapeHtml(g)}">`)
+      .join("");
 }
 
 // =====================
 // --- MODAL & UI ---
 // =====================
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove("active");
+}
 
 function clearAllData() {
   if (confirm("Permanently delete all local data?")) {
     entries = [];
     persist();
     refreshSummaryGroupDropdown();
-  refreshListGroupDropdown();
+    refreshListGroupDropdown();
     renderList();
-  
   }
 }
 
 function switchView(id) {
-  document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document
+    .querySelectorAll(".view-section")
+    .forEach((v) => v.classList.remove("active"));
+  document
+    .querySelectorAll(".nav-item")
+    .forEach((b) => b.classList.remove("active"));
 
-  if (id === 'list') {
-    document.getElementById('viewList').classList.add('active');
-    document.getElementById('btnList').classList.add('active');
+  if (id === "list") {
+    document.getElementById("viewList").classList.add("active");
+    document.getElementById("btnList").classList.add("active");
     renderList();
-  } else if (id === 'summary') {
-    document.getElementById('viewSummary').classList.add('active');
-    document.getElementById('btnSum').classList.add('active');
+  } else if (id === "summary") {
+    document.getElementById("viewSummary").classList.add("active");
+    document.getElementById("btnSum").classList.add("active");
     refreshSummaryGroupDropdown();
-  refreshListGroupDropdown();
+    refreshListGroupDropdown();
     calculateSummary();
   } else {
-    document.getElementById('viewSettings').classList.add('active');
-    document.getElementById('btnSet').classList.add('active');
+    document.getElementById("viewSettings").classList.add("active");
+    document.getElementById("btnSet").classList.add("active");
   }
 }
 
-function openExportModal() { document.getElementById('modalExport').classList.add('active'); }
+function openExportModal() {
+  document.getElementById("modalExport").classList.add("active");
+}
 
 // HTML uses onclick="handleAuthClick()"
 function handleAuthClick() {
   // If Google scripts are still loading, retry and inform user
   if (!gisInited || !gapiInited) {
-    document.getElementById('syncStatus').innerText = "Loading Google libraries... try again in a second.";
+    document.getElementById("syncStatus").innerText =
+      "Loading Google libraries... try again in a second.";
     checkGoogleLoaded();
     setTimeout(() => {
-      if (!gisInited || !gapiInited) alert("Google libraries are still loading. Please try again.");
+      if (!gisInited || !gapiInited)
+        alert("Google libraries are still loading. Please try again.");
     }, 600);
     return;
   }
@@ -956,10 +1184,11 @@ function handleAuthClick() {
 // =====================
 let _googleLoadAttempts = 0;
 function checkGoogleLoaded() {
-  const statusEl = document.getElementById('syncStatus');
+  const statusEl = document.getElementById("syncStatus");
 
-  const haveGis = (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2);
-  const haveGapi = (typeof gapi !== 'undefined');
+  const haveGis =
+    typeof google !== "undefined" && google.accounts && google.accounts.oauth2;
+  const haveGapi = typeof gapi !== "undefined";
 
   if (haveGis && haveGapi) {
     gisLoaded();
@@ -969,28 +1198,32 @@ function checkGoogleLoaded() {
 
   _googleLoadAttempts++;
   if (statusEl) {
-    statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Loading Google scripts...';
+    statusEl.innerHTML =
+      '<i class="fas fa-circle-notch fa-spin"></i> Loading Google scripts...';
   }
 
   // After ~12 seconds, stop looping and show a helpful message
   if (_googleLoadAttempts > 24) {
     if (statusEl) {
-      statusEl.innerHTML = '<span style="color:#b91c1c; font-weight:600;">Google scripts failed to load.</span><br><span style="font-size:0.85rem; color:#64748b;">Check your internet, disable ad-blockers for this site, and ensure apis.google.com is not blocked.</span>';
+      statusEl.innerHTML =
+        '<span style="color:#b91c1c; font-weight:600;">Google scripts failed to load.</span><br><span style="font-size:0.85rem; color:#64748b;">Check your internet, disable ad-blockers for this site, and ensure apis.google.com is not blocked.</span>';
     }
     // Still show the connect button (user can retry by reloading)
-    const controls = document.getElementById('driveControls');
-    if (controls) controls.classList.remove('hidden');
+    const controls = document.getElementById("driveControls");
+    if (controls) controls.classList.remove("hidden");
     return;
   }
 
   setTimeout(checkGoogleLoaded, 500);
 }
 
-
 function gapiLoaded() {
-  gapi.load('client', async () => {
+  gapi.load("client", async () => {
     try {
-      await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [DISCOVERY_DOC],
+      });
       gapiInited = true;
       updateDriveUI();
     } catch (e) {
@@ -1011,14 +1244,15 @@ function gisLoaded() {
         return;
       }
 
-      localStorage.setItem(DRIVE_LOGIN_KEY, '1');
-      document.getElementById('syncStatus').classList.add('active');
-      document.getElementById('syncStatus').innerHTML = '<span style="color:green">Connected to Drive</span>';
-      document.getElementById('driveControls').classList.add('hidden');
-      document.getElementById('driveActions').classList.remove('hidden');
+      localStorage.setItem(DRIVE_LOGIN_KEY, "1");
+      document.getElementById("syncStatus").classList.add("active");
+      document.getElementById("syncStatus").innerHTML =
+        '<span style="color:green">Connected to Drive</span>';
+      document.getElementById("driveControls").classList.add("hidden");
+      document.getElementById("driveActions").classList.remove("hidden");
 
       // Manual only: no auto-restore / auto-backup on login
-    }
+    },
   });
 
   gisInited = true;
@@ -1028,19 +1262,26 @@ function gisLoaded() {
 function updateDriveUI() {
   if (!(gapiInited && gisInited)) return;
 
-  const hasToken = !!(gapi.client && gapi.client.getToken && gapi.client.getToken());
-  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === '1';
+  const hasToken = !!(
+    gapi.client &&
+    gapi.client.getToken &&
+    gapi.client.getToken()
+  );
+  const wasConnected = localStorage.getItem(DRIVE_LOGIN_KEY) === "1";
 
   if (hasToken) {
-    document.getElementById('syncStatus').classList.add('active');
-    document.getElementById('syncStatus').innerHTML = '<span style="color:green">Connected to Drive</span>';
-    document.getElementById('driveControls').classList.add('hidden');
-    document.getElementById('driveActions').classList.remove('hidden');
+    document.getElementById("syncStatus").classList.add("active");
+    document.getElementById("syncStatus").innerHTML =
+      '<span style="color:green">Connected to Drive</span>';
+    document.getElementById("driveControls").classList.add("hidden");
+    document.getElementById("driveActions").classList.remove("hidden");
   } else {
-    document.getElementById('syncStatus').classList.remove('active');
-    document.getElementById('syncStatus').innerText = wasConnected ? "Reconnect to Drive (session expired)." : "Ready to connect.";
-    document.getElementById('driveControls').classList.remove('hidden');
-    document.getElementById('driveActions').classList.add('hidden');
+    document.getElementById("syncStatus").classList.remove("active");
+    document.getElementById("syncStatus").innerText = wasConnected
+      ? "Reconnect to Drive (session expired)."
+      : "Ready to connect.";
+    document.getElementById("driveControls").classList.remove("hidden");
+    document.getElementById("driveActions").classList.add("hidden");
   }
 }
 
@@ -1050,55 +1291,65 @@ async function loginDrive() {
     return;
   }
   // Force account picker on mobile so user sees the dialog
-  tokenClient.requestAccessToken({ prompt: 'select_account' });
+  tokenClient.requestAccessToken({ prompt: "select_account" });
 }
 
 async function findLatestBackupFileId(token) {
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name="${BACKUP_FILENAME}"&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)&pageSize=1`,
-    { headers: { Authorization: 'Bearer ' + token } }
+    { headers: { Authorization: "Bearer " + token } }
   );
   const data = await res.json();
   if (!data.files || data.files.length === 0) return null;
   return data.files[0].id;
 }
 
-function setDriveButtonLoading(btnId, loading){
+function setDriveButtonLoading(btnId, loading) {
   const btn = document.getElementById(btnId);
   if (!btn) return;
-  btn.classList.toggle('loading', !!loading);
-  const sp = btn.querySelector('.btn-spinner');
-  if (sp) sp.classList.toggle('hidden', !loading);
+  btn.classList.toggle("loading", !!loading);
+  const sp = btn.querySelector(".btn-spinner");
+  if (sp) sp.classList.toggle("hidden", !loading);
 }
 
 async function uploadBackupMultipart(token, fileIdOrNull) {
-  const blob = new Blob([JSON.stringify(entries)], { type: 'application/json' });
-  const metadata = { name: BACKUP_FILENAME, mimeType: 'application/json' };
+  const blob = new Blob([JSON.stringify(entries)], {
+    type: "application/json",
+  });
+  const metadata = { name: BACKUP_FILENAME, mimeType: "application/json" };
 
   const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  form.append('file', blob);
+  form.append(
+    "metadata",
+    new Blob([JSON.stringify(metadata)], { type: "application/json" })
+  );
+  form.append("file", blob);
 
   const url = fileIdOrNull
     ? `https://www.googleapis.com/upload/drive/v3/files/${fileIdOrNull}?uploadType=multipart`
     : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
 
-  const method = fileIdOrNull ? 'PATCH' : 'POST';
+  const method = fileIdOrNull ? "PATCH" : "POST";
 
   const res = await fetch(url, {
     method,
-    headers: { Authorization: 'Bearer ' + token },
-    body: form
+    headers: { Authorization: "Bearer " + token },
+    body: form,
   });
 
   return res.ok;
 }
 
 async function backupToDrive() {
-  setDriveButtonLoading('btnBackupDrive', true);
+  setDriveButtonLoading("btnBackupDrive", true);
   try {
-    const token = gapi.client.getToken() ? gapi.client.getToken().access_token : null;
-    if (!token) { alert("Not logged in!"); return; }
+    const token = gapi.client.getToken()
+      ? gapi.client.getToken().access_token
+      : null;
+    if (!token) {
+      alert("Not logged in!");
+      return;
+    }
 
     const fileId = await findLatestBackupFileId(token);
     const ok = await uploadBackupMultipart(token, fileId);
@@ -1109,43 +1360,57 @@ async function backupToDrive() {
     console.error(e);
     alert("Drive backup failed.");
   } finally {
-    setDriveButtonLoading('btnBackupDrive', false);
+    setDriveButtonLoading("btnBackupDrive", false);
   }
 }
 
 async function restoreFromDrive(silent = false) {
-  if (!silent) setDriveButtonLoading('btnRestoreDrive', true);
+  if (!silent) setDriveButtonLoading("btnRestoreDrive", true);
   try {
-    const token = gapi.client.getToken() ? gapi.client.getToken().access_token : null;
-    if (!token) { if (!silent) alert("Not logged in!"); return false; }
+    const token = gapi.client.getToken()
+      ? gapi.client.getToken().access_token
+      : null;
+    if (!token) {
+      if (!silent) alert("Not logged in!");
+      return false;
+    }
 
     const fileId = await findLatestBackupFileId(token);
-    if (!fileId) { if (!silent) alert("No backup found."); return false; }
+    if (!fileId) {
+      if (!silent) alert("No backup found.");
+      return false;
+    }
 
-    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: 'Bearer ' + token }
-    });
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        headers: { Authorization: "Bearer " + token },
+      }
+    );
 
     const text = await fileRes.text();
     const parsed = JSON.parse(text);
 
-    if (!Array.isArray(parsed)) { if (!silent) alert("Backup file is invalid."); return false; }
+    if (!Array.isArray(parsed)) {
+      if (!silent) alert("Backup file is invalid.");
+      return false;
+    }
 
     // Upgrade older backups that don't have `group`
-    entries = parsed.map(e => ({
+    entries = parsed.map((e) => ({
       id: e.id ?? Date.now(),
       date: e.date ?? new Date().toISOString(),
-      item: e.item ?? '',
+      item: e.item ?? "",
       price: e.price ?? 0,
-      paidBy: e.paidBy ?? '',
-      consumedBy: e.consumedBy ?? '',
-      group: e.group ?? '',
-      desc: e.desc ?? ''
+      paidBy: e.paidBy ?? "",
+      consumedBy: e.consumedBy ?? "",
+      group: e.group ?? "",
+      desc: e.desc ?? "",
     }));
 
     persist();
     refreshSummaryGroupDropdown();
-  refreshListGroupDropdown();
+    refreshListGroupDropdown();
     renderList();
 
     if (!silent) alert("Backup restored!");
@@ -1155,12 +1420,13 @@ async function restoreFromDrive(silent = false) {
     if (!silent) alert("Drive restore failed.");
     return false;
   } finally {
-    if (!silent) setDriveButtonLoading('btnRestoreDrive', false);
+    if (!silent) setDriveButtonLoading("btnRestoreDrive", false);
   }
 }
 
-async function autoBackupIfConnected(){ /* manual only */ }
-
+async function autoBackupIfConnected() {
+  /* manual only */
+}
 
 // =====================
 // --- TEMPLATES ---
@@ -1180,19 +1446,22 @@ function saveTemplates(arr) {
 }
 
 function renderTemplatesList() {
-  const holder = document.getElementById('templatesList');
+  const holder = document.getElementById("templatesList");
   if (!holder) return;
 
   const templates = loadTemplates();
   if (templates.length === 0) {
-    holder.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:10px;">No templates yet.</div>';
+    holder.innerHTML =
+      '<div style="text-align:center; color:#94a3b8; padding:10px;">No templates yet.</div>';
     return;
   }
 
   holder.innerHTML = templates
     .map((t, idx) => {
-      const title = escapeHtml(t.name || ('Template ' + (idx + 1)));
-      const subtitle = `${escapeHtml(t.item || '')} • ${formatCurrency(t.price || 0)} • ${escapeHtml(t.group || 'No Group')}`;
+      const title = escapeHtml(t.name || "Template " + (idx + 1));
+      const subtitle = `${escapeHtml(t.item || "")} • ${formatCurrency(
+        t.price || 0
+      )} • ${escapeHtml(t.group || "No Group")}`;
       return `
         <div class="card" style="padding:12px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
@@ -1208,40 +1477,40 @@ function renderTemplatesList() {
         </div>
       `;
     })
-    .join('');
+    .join("");
 }
 
 function openTemplatesModal() {
-  const modal = document.getElementById('modalTemplates');
+  const modal = document.getElementById("modalTemplates");
   if (!modal) return;
-  document.getElementById('tplName').value = '';
+  document.getElementById("tplName").value = "";
   renderTemplatesList();
-  modal.classList.add('active');
+  modal.classList.add("active");
 }
 
 function saveCurrentAsTemplate() {
-  const name = (document.getElementById('tplName').value || '').trim();
+  const name = (document.getElementById("tplName").value || "").trim();
   if (!name) {
-    alert('Please enter a template name.');
+    alert("Please enter a template name.");
     return;
   }
 
   // Use current fields from the entry modal if present; otherwise use empty.
   const tpl = {
     name,
-    item: (document.getElementById('inpItem')?.value || '').trim(),
-    price: parseFloat(document.getElementById('inpPrice')?.value || '0') || 0,
-    group: (document.getElementById('inpGroup')?.value || '').trim(),
-    paidBy: (document.getElementById('inpPaid')?.value || '').trim(),
-    consumedBy: (document.getElementById('inpConsumed')?.value || '').trim(),
-    desc: (document.getElementById('inpDesc')?.value || '').trim()
+    item: (document.getElementById("inpItem")?.value || "").trim(),
+    price: parseFloat(document.getElementById("inpPrice")?.value || "0") || 0,
+    group: (document.getElementById("inpGroup")?.value || "").trim(),
+    paidBy: (document.getElementById("inpPaid")?.value || "").trim(),
+    consumedBy: (document.getElementById("inpConsumed")?.value || "").trim(),
+    desc: (document.getElementById("inpDesc")?.value || "").trim(),
   };
 
   const templates = loadTemplates();
   templates.push(tpl);
   saveTemplates(templates);
   renderTemplatesList();
-  alert('Template saved.');
+  alert("Template saved.");
 }
 
 function applyTemplate(idx) {
@@ -1252,23 +1521,216 @@ function applyTemplate(idx) {
   // Open entry modal and apply
   openEntryModal();
 
-  if (t.item) document.getElementById('inpItem').value = t.item;
-  if (t.price) document.getElementById('inpPrice').value = t.price;
-  if (t.group) document.getElementById('inpGroup').value = t.group;
-  if (t.paidBy) document.getElementById('inpPaid').value = t.paidBy;
-  if (t.consumedBy) document.getElementById('inpConsumed').value = t.consumedBy;
-  if (t.desc) document.getElementById('inpDesc').value = t.desc;
+  if (t.item) document.getElementById("inpItem").value = t.item;
+  if (t.price) document.getElementById("inpPrice").value = t.price;
+  if (t.group) document.getElementById("inpGroup").value = t.group;
+  if (t.paidBy) document.getElementById("inpPaid").value = t.paidBy;
+  if (t.consumedBy) document.getElementById("inpConsumed").value = t.consumedBy;
+  if (t.desc) document.getElementById("inpDesc").value = t.desc;
 
-  closeModal('modalTemplates');
+  closeModal("modalTemplates");
 }
 
 function deleteTemplate(idx) {
-  if (!confirm('Delete this template?')) return;
+  if (!confirm("Delete this template?")) return;
   const templates = loadTemplates();
   templates.splice(idx, 1);
   saveTemplates(templates);
   renderTemplatesList();
 }
 
-// expose for inline onclick
-Object.assign(window, {switchView, setListPeriod, shiftListDate, openListDatePicker, onListDatePicked, openMonthPicker, shiftMonthPicker, pickMonth, toggleNameDropdown, addNameFromInput, selectPaidName, toggleConsumedName, openEntryModal, saveEntry, editEntry, deleteEntry, triggerCopy, confirmCopyWithDate, openTemplatesModal, saveCurrentAsTemplate, applyTemplate, deleteTemplate, backupToDrive, restoreFromDrive, handleAuthClick, openDateModal, applyDateFilter, resetDates, openExportModal, executeExport, clearAllData, closeModal});
+let _namePickerMode = "paid"; // 'paid' | 'consumed'
+
+function openNamePicker(mode) {
+  _namePickerMode = mode;
+
+  // title + hints
+  const title = document.getElementById("namePickerTitle");
+  const hint = document.getElementById("namePickerHint");
+  const doneBtn = document.getElementById("namePickerDoneBtn");
+
+  if (mode === "paid") {
+    if (title) title.textContent = "Paid By";
+    if (hint) hint.textContent = "Select one person";
+    if (doneBtn) doneBtn.style.display = "none"; // single select closes immediately
+  } else {
+    if (title) title.textContent = "Consumed By";
+    if (hint) hint.textContent = "Select one or more people";
+    if (doneBtn) doneBtn.style.display = "inline-flex";
+  }
+
+  // reset inputs
+  const s = document.getElementById("namePickerSearch");
+  const n = document.getElementById("namePickerNew");
+  if (s) s.value = "";
+  if (n) n.value = "";
+
+  renderNamePickerList();
+
+  const modal = document.getElementById("modalNamePicker");
+  if (modal) modal.classList.add("active");
+
+  // focus new-name input for fast add
+  setTimeout(() => {
+    if (n) n.focus();
+  }, 50);
+}
+window.openNamePicker = openNamePicker;
+
+function closeNamePicker() {
+  const modal = document.getElementById("modalNamePicker");
+  if (modal) modal.classList.remove("active");
+
+  // Update the small display labels on your form
+  renderNameDropdownLists();
+}
+
+function namePickerAddNew() {
+  const inp = document.getElementById("namePickerNew");
+  if (!inp) return;
+
+  const name = cleanPersonName(inp.value || "");
+  if (!name) return;
+
+  const names = loadNamesCatalog();
+  names.push(name);
+  saveNamesCatalog(names);
+
+  // auto-select the newly added name
+  if (_namePickerMode === "paid") {
+    document.getElementById("inpPaid").value = name;
+    closeNamePicker();
+  } else {
+    // add to consumed list
+    let arr = (document.getElementById("inpConsumed").value || "")
+      .split(",")
+      .map(cleanPersonName)
+      .filter(Boolean);
+
+    if (!arr.includes(name)) arr.push(name);
+    document.getElementById("inpConsumed").value = arr.join(", ");
+    renderNamePickerList();
+  }
+
+  inp.value = "";
+}
+
+function renderNamePickerList() {
+  const holder = document.getElementById("namePickerList");
+  if (!holder) return;
+
+  const q = (document.getElementById("namePickerSearch")?.value || "")
+    .trim()
+    .toLowerCase();
+  const names = loadNamesCatalog().filter(
+    (n) => !q || n.toLowerCase().includes(q)
+  );
+
+  const paidHidden = document.getElementById("inpPaid");
+  const consHidden = document.getElementById("inpConsumed");
+
+  const selectedPaid = cleanPersonName(paidHidden?.value || "");
+  const selectedCons = new Set(
+    (consHidden?.value || "").split(",").map(cleanPersonName).filter(Boolean)
+  );
+
+  if (names.length === 0) {
+    holder.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:18px;">No names found.</div>`;
+    return;
+  }
+
+  holder.innerHTML = names
+    .map((n) => {
+      const isPaid =
+        _namePickerMode === "paid" && cleanPersonName(n) === selectedPaid;
+      const isCons =
+        _namePickerMode === "consumed" && selectedCons.has(cleanPersonName(n));
+
+      const inputHtml =
+        _namePickerMode === "paid"
+          ? `<input type="radio" name="pickerPaid" ${
+              isPaid ? "checked" : ""
+            } />`
+          : `<input type="checkbox" ${isCons ? "checked" : ""} />`;
+
+      return `
+      <div class="name-pick-row" onclick="namePickerToggle('${escapeHtml(n)}')">
+        <div class="left">
+          ${inputHtml}
+          <div style="min-width:0;">
+            <div class="nm">${escapeHtml(n)}</div>
+            <div class="sub">${
+              _namePickerMode === "paid"
+                ? "Tap to set as payer"
+                : "Tap to include/exclude"
+            }</div>
+          </div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+function namePickerToggle(name) {
+  const n = cleanPersonName(name);
+
+  if (_namePickerMode === "paid") {
+    document.getElementById("inpPaid").value = n;
+    closeNamePicker(); // single select closes immediately
+    return;
+  }
+
+  // consumed: toggle checkbox
+  let arr = (document.getElementById("inpConsumed").value || "")
+    .split(",")
+    .map(cleanPersonName)
+    .filter(Boolean);
+
+  if (arr.includes(n)) arr = arr.filter((x) => x !== n);
+  else arr.push(n);
+
+  document.getElementById("inpConsumed").value = arr.join(", ");
+  renderNamePickerList();
+}
+
+// // expose for inline onclick
+// Object.assign(window, {switchView, setListPeriod, shiftListDate, openListDatePicker, onListDatePicked, openMonthPicker, shiftMonthPicker, pickMonth, toggleNameDropdown, addNameFromInput, selectPaidName, toggleConsumedName, openEntryModal, saveEntry, editEntry, deleteEntry, triggerCopy, confirmCopyWithDate, openTemplatesModal, saveCurrentAsTemplate, applyTemplate, deleteTemplate, backupToDrive, restoreFromDrive, handleAuthClick, openDateModal, applyDateFilter, resetDates, openExportModal, executeExport, clearAllData, closeModal,openNamePicker, closeNamePicker, namePickerAddNew, renderNamePickerList, namePickerToggle});
+
+Object.assign(window, {
+  openNamePicker,
+  closeNamePicker,
+  namePickerAddNew,
+  renderNamePickerList,
+  namePickerToggle,
+
+  // keep your existing exports
+  switchView,
+  setListPeriod,
+  shiftListDate,
+  openListDatePicker,
+  onListDatePicked,
+  openMonthPicker,
+  shiftMonthPicker,
+  pickMonth,
+  openEntryModal,
+  saveEntry,
+  editEntry,
+  deleteEntry,
+  triggerCopy,
+  confirmCopyWithDate,
+  openTemplatesModal,
+  saveCurrentAsTemplate,
+  applyTemplate,
+  deleteTemplate,
+  backupToDrive,
+  restoreFromDrive,
+  handleAuthClick,
+  openDateModal,
+  applyDateFilter,
+  resetDates,
+  openExportModal,
+  executeExport,
+  clearAllData,
+  closeModal,
+});
