@@ -910,216 +910,272 @@ header {
   justify-content: center !important;
 }
 
-/* =========================================================
-   NAME PICKER (Fully Scoped / Independent Styles)
-   Applies ONLY inside: #modalNamePicker
-   ========================================================= */
-
-#modalNamePicker {
+/* ============================
+   Modern Confirm Modal
+   ============================ */
+.ui-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
+  padding: 18px;
+  z-index: 99999;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
+  transition: opacity 0.16s ease, visibility 0.16s ease;
   backdrop-filter: blur(2px);
 }
-
-#modalNamePicker.active {
+.ui-overlay.active {
   opacity: 1;
   visibility: visible;
 }
-
-/* Container */
-#modalNamePicker .np-modal {
-  width: min(560px, 100%);
-  height: 100%;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
+.ui-dialog {
+  width: min(520px, 100%);
+  background: var(--surface, #fff);
+  color: var(--text, #0f172a);
+  border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   overflow: hidden;
-  border-radius: 0;
+  transform: translateY(10px);
+  transition: transform 0.18s ease;
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
-
-/* Header */
-#modalNamePicker .np-head {
+.ui-overlay.active .ui-dialog {
+  transform: translateY(0);
+}
+.ui-dialog-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
-  padding: 16px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
 }
-
-#modalNamePicker .np-title {
+.ui-dialog-title {
   font-weight: 900;
   font-size: 1.1rem;
-  color: #0f172a;
 }
-
-#modalNamePicker .np-hint {
-  font-size: 0.85rem;
-  color: #64748b;
+.ui-dialog-sub {
   margin-top: 2px;
+  font-size: 0.86rem;
+  color: var(--text-muted, #64748b);
 }
-
-/* Body */
-#modalNamePicker .np-body {
-  padding: 16px;
-  overflow: auto;
-  flex: 1;
-}
-
-/* Footer */
-#modalNamePicker .np-foot {
-  display: flex;
-  gap: 10px;
-  padding: 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
-}
-
-/* Icon button (close) */
-#modalNamePicker .np-icon {
+.ui-icon-btn {
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 1.25rem;
   cursor: pointer;
   padding: 8px;
   border-radius: 12px;
+  font-size: 1.1rem;
 }
-#modalNamePicker .np-icon:active {
+.ui-icon-btn:active {
   transform: scale(0.98);
 }
-
-/* Row blocks */
-#modalNamePicker .np-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 12px;
+.ui-dialog-body {
+  padding: 14px 16px 16px;
 }
-
-/* Inputs (scoped) */
-#modalNamePicker .np-input {
-  width: 100%;
+.ui-dialog-msg {
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+.ui-dialog-details {
+  margin-top: 12px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 1rem;
-  box-sizing: border-box;
-  outline: none;
-  background: #fff;
-  color: #0f172a;
-}
-#modalNamePicker .np-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-#modalNamePicker .np-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  background: #fff;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 0.92rem;
 }
-#modalNamePicker .np-search i {
-  color: #64748b;
+.ui-dialog-foot {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
 }
-#modalNamePicker .np-search input {
-  border: none;
-  outline: none;
+.ui-btn {
   width: 100%;
-  font-size: 1rem;
-  color: #0f172a;
-  padding: 0;
-  background: transparent;
-}
-
-/* Buttons (scoped) */
-#modalNamePicker .np-btn {
-  border: none;
-  border-radius: 10px;
   padding: 12px;
+  border-radius: 12px;
   font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
-  display: inline-flex;
+  border: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
 }
-#modalNamePicker .np-btn-primary {
-  background: #2563eb;
-  color: #fff;
-}
-#modalNamePicker .np-btn-outline {
-  background: #fff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-}
-#modalNamePicker .np-btn:active {
+.ui-btn:active {
   transform: scale(0.99);
 }
-
-/* List */
-#modalNamePicker .np-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.ui-btn-primary {
+  background: var(--primary, #2563eb);
+  color: #fff;
+}
+.ui-btn-outline {
+  background: transparent;
+  color: var(--text, #0f172a);
+  border: 1px solid rgba(148, 163, 184, 0.35);
 }
 
-/* Item */
-#modalNamePicker .np-item {
-  display: flex;
-  align-items: center;
+/* Settlement item controls */
+.btn-small {
+  padding: 8px 10px !important;
+  font-size: 0.85rem !important;
+  border-radius: 10px !important;
+  width: auto !important;
+}
+.settle-item {
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 14px;
-  background: #ffffff;
-  cursor: pointer;
-  user-select: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
-
-#modalNamePicker .np-left {
+.settle-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
-
-#modalNamePicker .np-item input {
-  width: 18px;
-  height: 18px;
+.settle-paid {
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+.badge-paid {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.14);
+  color: #166534;
+  border: 1px solid rgba(22, 163, 74, 0.25);
 }
 
-#modalNamePicker .np-name {
-  font-weight: 900;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* ============================
+   Mobile UX Polish (Overrides)
+   paste at END of file
+   ============================ */
+
+:root {
+  --shadow: 0 10px 25px rgba(2, 8, 23, 0.06);
 }
 
-#modalNamePicker .np-sub {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin-top: 2px;
+/* Slightly softer app background */
+body {
+  background: #f7f8fb;
 }
 
-#modalNamePicker .np-item:active {
-  background: #f1f5f9;
+/* Header: more premium */
+header {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+  padding: 12px 14px 14px;
+}
+
+/* Inputs + buttons: better touch + modern radius */
+.input {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  height: 44px;
+}
+.input:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.btn {
+  border-radius: 14px;
+  height: 44px;
+}
+
+/* Cards: modern elevation + border */
+.card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow);
+}
+
+/* Bottom nav: looks like native */
+.bottom-nav {
+  box-shadow: 0 -10px 25px rgba(2, 8, 23, 0.06);
+}
+
+/* FAB: rounded-square (more modern than circle) */
+.fab {
+  border-radius: 18px;
+  bottom: calc(var(--nav-height) + 16px);
+  right: 16px;
+}
+
+/* Modals: modern sheet on mobile */
+.modal {
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 30px 60px rgba(2, 8, 23, 0.18);
+}
+
+@media (max-width: 520px) {
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+  }
+}
+
+@media (max-width: 520px) {
+  #modalNamePicker.modal-overlay.active {
+    align-items: stretch !important;
+  }
+  #modalNamePicker .modal.modal-full {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* Compact density */
+body.compact .view-section {
+  padding: 12px;
+}
+body.compact .card {
+  padding: 10px 12px;
+}
+body.compact .card-row-2 {
+  font-size: 0.76rem;
+}
+body.compact .pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.name-del-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.name-del-btn:active {
+  transform: scale(0.98);
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.name-del-btn i {
+  font-size: 0.95rem;
 }

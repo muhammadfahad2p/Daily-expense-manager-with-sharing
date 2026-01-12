@@ -16,7 +16,7 @@
     <!-- Google Identity Services (Async Load) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
-    <link rel="stylesheet" href="style.css?v=1" />
+    <link rel="stylesheet" href="style.css?v=4" />
     <link rel="icon" href="favicon.ico" />
   </head>
   <body>
@@ -241,6 +241,36 @@
             File: expense_manager_backup.json
           </div>
         </div>
+
+        <!-- Local Data Section -->
+        <div class="section-box">
+          <div class="box-header">Local Data</div>
+
+          <input
+            type="file"
+            id="importFile"
+            accept=".csv"
+            class="hidden"
+            onchange="handleFileSelect(this)"
+          />
+
+          <!-- <button
+          class="btn btn-outline"
+          onclick="document.getElementById('importFile').click()"
+        >
+          <i class="fas fa-file-import"></i> Import CSV
+        </button> -->
+
+          <button class="btn btn-outline" onclick="openExportModal()">
+            <i class="fas fa-file-excel"></i> Export Excel (xls)
+          </button>
+          <div
+            class="label"
+            style="margin-top: 10px; font-weight: 400; text-align: center"
+          >
+            Supports Import/Export for Excel/Sheets
+          </div>
+        </div>
       </div>
 
       <!-- Templates Section -->
@@ -257,38 +287,17 @@
         </div>
       </div>
 
-      <!-- Local Data Section -->
+      <!-- Settled History Section -->
       <div class="section-box">
-        <div class="box-header">Local Data</div>
-
-        <input
-          type="file"
-          id="importFile"
-          accept=".csv"
-          class="hidden"
-          onchange="handleFileSelect(this)"
-        />
-
-        <button
-          class="btn btn-outline"
-          onclick="document.getElementById('importFile').click()"
-        >
-          <i class="fas fa-file-import"></i> Import CSV
+        <div class="box-header">Settled History</div>
+        <button class="btn btn-outline" onclick="openSettledHistoryModal()">
+          <i class="fas fa-archive"></i> View Settled Batches
         </button>
-
-        <button class="btn btn-outline" onclick="openExportModal()">
-          <i class="fas fa-file-csv"></i> Export CSV
-        </button>
-
-        <button class="btn btn-danger" onclick="clearAllData()">
-          <i class="fas fa-trash-alt"></i> Clear All Data
-        </button>
-
         <div
           class="label"
           style="margin-top: 10px; font-weight: 400; text-align: center"
         >
-          Supports Import/Export for Excel/Sheets
+          Restore or delete previously settled batches.
         </div>
       </div>
     </div>
@@ -503,12 +512,13 @@
           <label class="label">To</label>
           <input type="date" id="expEnd" class="input" />
         </div>
-        <button class="btn btn-primary" onclick="executeExport('csv')">
-          Download CSV
+        <button class="btn btn-primary" onclick="executeExport('xls')">
+          Download Excel (XLS)
         </button>
-        <button class="btn btn-copy" onclick="executeExport('share')">
-          Share File
+        <button class="btn btn-copy" onclick="executeExport('sharexls')">
+          Share Excel
         </button>
+
         <button class="btn btn-outline" onclick="closeModal('modalExport')">
           Cancel
         </button>
@@ -714,7 +724,96 @@
         </div>
       </div>
     </div>
+    <!-- MODAL: SETTLED HISTORY -->
+    <div class="modal-overlay" id="modalSettledHistory">
+      <div class="modal modal-full">
+        <div class="modal-full-header">
+          <div>
+            <div style="font-weight: 800; font-size: 1.1rem">
+              Settled History
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem">
+              Restore or delete settled batches
+            </div>
+          </div>
+          <button
+            class="icon-btn"
+            type="button"
+            onclick="closeModal('modalSettledHistory')"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-full-body">
+          <div id="settledHistoryList" class="name-picker-list"></div>
+        </div>
+        <div class="modal-full-footer">
+          <button
+            class="btn btn-outline"
+            type="button"
+            onclick="closeModal('modalSettledHistory')"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <script src="script.js?v=1"></script>
+    <!-- Modern Confirm Modal (replaces browser confirm) -->
+    <div class="ui-overlay" id="uiConfirmOverlay" aria-hidden="true">
+      <div
+        class="ui-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uiConfirmTitle"
+      >
+        <div class="ui-dialog-head">
+          <div>
+            <div class="ui-dialog-title" id="uiConfirmTitle">Confirm</div>
+            <div class="ui-dialog-sub" id="uiConfirmSub">
+              Please confirm your action
+            </div>
+          </div>
+          <button
+            class="ui-icon-btn"
+            type="button"
+            onclick="uiConfirmClose(false)"
+            aria-label="Close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="ui-dialog-body">
+          <div class="ui-dialog-msg" id="uiConfirmMsg"></div>
+          <div
+            class="ui-dialog-details"
+            id="uiConfirmDetails"
+            style="display: none"
+          ></div>
+        </div>
+
+        <div class="ui-dialog-foot">
+          <button
+            class="ui-btn ui-btn-outline"
+            type="button"
+            onclick="uiConfirmClose(false)"
+            id="uiConfirmCancelBtn"
+          >
+            Cancel
+          </button>
+          <button
+            class="ui-btn ui-btn-primary"
+            type="button"
+            onclick="uiConfirmClose(true)"
+            id="uiConfirmOkBtn"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js?v=4"></script>
   </body>
 </html>

@@ -8,6 +8,11 @@
 const DRIVE_LOGIN_KEY = "drive_logged_in";
 const CURRENCY_SYMBOL = "SR ";
 const TEMPLATES_KEY = "expense_templates_v1";
+// Settled batches archive storage
+const SETTLED_BATCHES_KEY = "expense_settled_batches_v1";
+
+// Paid-state map for settlement lines (per filter batch)
+const SETTLEMENT_PAID_KEY = "expense_settlement_paid_v1";
 
 // Keep the same filename everywhere (UI + Drive backup/restore)
 const BACKUP_FILENAME = "expenses_backup.json";
@@ -32,6 +37,7 @@ let gisInited = false;
 
 let summaryStartDate = null;
 let summaryEndDate = null;
+let _lastFocusEl = null;
 
 // Summary group filter (string or "__all__")
 let summaryGroup = "__all__"; // =====================
@@ -87,9 +93,323 @@ function toLocalDateShort(iso) {
 }
 
 // =====================
+// --- MODERN CONFIRM (no browser confirm) ---
+// =====================
+let _uiConfirmResolver = null;
+let _uiConfirmLastFocus = null;
+
+function uiConfirm(opts = {}) {
+  const overlay = document.getElementById("uiConfirmOverlay");
+  const titleEl = document.getElementById("uiConfirmTitle");
+  const subEl = document.getElementById("uiConfirmSub");
+  const msgEl = document.getElementById("uiConfirmMsg");
+  const detailsEl = document.getElementById("uiConfirmDetails");
+  const okBtn = document.getElementById("uiConfirmOkBtn");
+  const cancelBtn = document.getElementById("uiConfirmCancelBtn");
+
+  if (
+    !overlay ||
+    !titleEl ||
+    !subEl ||
+    !msgEl ||
+    !detailsEl ||
+    !okBtn ||
+    !cancelBtn
+  ) {
+    return Promise.resolve(confirm(opts?.message || "Are you sure?"));
+  }
+
+  titleEl.textContent = opts.title || "Confirm";
+  subEl.textContent = opts.sub || "";
+  msgEl.textContent = opts.message || "Are you sure?";
+
+  if (opts.detailsHtml) {
+    detailsEl.style.display = "";
+    detailsEl.innerHTML = opts.detailsHtml;
+  } else {
+    detailsEl.style.display = "none";
+    detailsEl.innerHTML = "";
+  }
+
+  okBtn.textContent = opts.okText || "OK";
+  cancelBtn.textContent = opts.cancelText || "Cancel";
+
+  // ✅ remember what had focus before opening
+  _uiConfirmLastFocus = document.activeElement;
+
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+
+  // ✅ focus OK button after it becomes visible
+  requestAnimationFrame(() => okBtn.focus());
+
+  return new Promise((resolve) => {
+    _uiConfirmResolver = resolve;
+  });
+}
+
+function uiConfirmClose(result) {
+  const overlay = document.getElementById("uiConfirmOverlay");
+
+  // ✅ move focus back OUTSIDE the overlay BEFORE aria-hidden
+  if (_uiConfirmLastFocus && typeof _uiConfirmLastFocus.focus === "function") {
+    _uiConfirmLastFocus.focus();
+  }
+  _uiConfirmLastFocus = null;
+
+  if (overlay) {
+    overlay.classList.remove("active");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  if (typeof _uiConfirmResolver === "function") {
+    const r = _uiConfirmResolver;
+    _uiConfirmResolver = null;
+    r(!!result);
+  }
+}
+
+// Close confirm on click outside + ESC
+document.addEventListener("click", (e) => {
+  const overlay = document.getElementById("uiConfirmOverlay");
+  if (!overlay || !overlay.classList.contains("active")) return;
+  if (e.target === overlay) uiConfirmClose(false);
+});
+document.addEventListener("keydown", (e) => {
+  const overlay = document.getElementById("uiConfirmOverlay");
+  if (!overlay || !overlay.classList.contains("active")) return;
+  if (e.key === "Escape") uiConfirmClose(false);
+});
+
+// =====================
+// --- SETTLED BATCHES ---
+// =====================
+function loadSettledBatches() {
+  try {
+    const raw = localStorage.getItem(SETTLED_BATCHES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSettledBatches(arr) {
+  localStorage.setItem(SETTLED_BATCHES_KEY, JSON.stringify(arr || []));
+}
+
+function loadSettledBatches() {
+  try {
+    const raw = localStorage.getItem(SETTLED_BATCHES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSettledBatches(arr) {
+  localStorage.setItem(SETTLED_BATCHES_KEY, JSON.stringify(arr || []));
+}
+
+function loadSettlementPaidMap() {
+  try {
+    const raw = localStorage.getItem(SETTLEMENT_PAID_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+function escapeAttr(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function saveSettlementPaidMap(mapObj) {
+  localStorage.setItem(SETTLEMENT_PAID_KEY, JSON.stringify(mapObj || {}));
+}
+
+// =====================
+// --- SETTLEMENT "PAID" CHECKLIST (per summary filter) ---
+// =====================
+function _summaryContextKey() {
+  const s = summaryStartDate
+    ? new Date(summaryStartDate).toISOString().slice(0, 10)
+    : "all";
+  const e = summaryEndDate
+    ? new Date(summaryEndDate).toISOString().slice(0, 10)
+    : "all";
+  const g = summaryGroup || "__all__";
+  return `${s}|${e}|${g}`;
+}
+function loadSettlementPaidMap() {
+  try {
+    const raw = localStorage.getItem(SETTLEMENT_PAID_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+function saveSettlementPaidMap(map) {
+  localStorage.setItem(SETTLEMENT_PAID_KEY, JSON.stringify(map || {}));
+}
+function isSettlementPaid(settleKey) {
+  const map = loadSettlementPaidMap();
+  const batchKey = getCurrentSettlementBatchKey();
+  return !!(map[batchKey] && map[batchKey][settleKey]);
+}
+
+function getCurrentSettlementBatchKey() {
+  const start = summaryStartDate
+    ? new Date(summaryStartDate).toISOString().slice(0, 10)
+    : "all";
+  const end = summaryEndDate
+    ? new Date(summaryEndDate).toISOString().slice(0, 10)
+    : "all";
+  const grp = summaryGroup || "__all__";
+  return `${start}__${end}__${grp}`;
+}
+
+function setSettlementPaid(settleKey, paid) {
+  const map = loadSettlementPaidMap();
+  const batchKey = getCurrentSettlementBatchKey();
+  if (!map[batchKey]) map[batchKey] = {};
+  if (paid) map[batchKey][settleKey] = 1;
+  else delete map[batchKey][settleKey];
+  saveSettlementPaidMap(map);
+}
+function toggleSettlementPaid(k) {
+  const ctx = _summaryContextKey();
+  const paidMap = loadSettlementPaidMap();
+  if (!paidMap[ctx]) paidMap[ctx] = {};
+
+  // keys stored exactly like: "from__to"
+  if (paidMap[ctx][k]) delete paidMap[ctx][k];
+  else paidMap[ctx][k] = 1;
+
+  saveSettlementPaidMap(paidMap);
+  console.log("TOGGLE PAID:", ctx, k, loadSettlementPaidMap());
+}
+
+function markAllSettlementsPaid(keysOrJson) {
+  const ctx = _summaryContextKey();
+
+  // ✅ Accept array OR JSON string (backward compatible)
+  let keys = [];
+  if (Array.isArray(keysOrJson)) {
+    keys = keysOrJson;
+  } else if (typeof keysOrJson === "string") {
+    try {
+      keys = JSON.parse(keysOrJson);
+    } catch {
+      keys = [];
+    }
+  }
+
+  if (!keys.length) return;
+
+  const paidMap = loadSettlementPaidMap();
+  if (!paidMap[ctx]) paidMap[ctx] = {};
+
+  keys.forEach((k) => {
+    paidMap[ctx][k] = 1;
+  });
+
+  saveSettlementPaidMap(paidMap);
+}
+
+// =====================
+// --- SUMMARY FILTERED ENTRIES HELPERS ---
+// =====================
+function getSummaryFilteredEntries() {
+  let data = entries;
+
+  if (summaryStartDate && summaryEndDate) {
+    data = data.filter((x) => {
+      const d = new Date(x.date);
+      return d >= summaryStartDate && d <= summaryEndDate;
+    });
+  }
+  if (summaryGroup && summaryGroup !== "__all__") {
+    data = data.filter((x) => (x.group || "").trim() === summaryGroup);
+  }
+  return data;
+}
+
+// =====================
+// --- BACKUP PAYLOAD (includes entries + settled history + templates + names) ---
+// =====================
+function buildBackupPayload() {
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    entries: entries || [],
+    settledBatches: loadSettledBatches(), // ✅ archived history
+    settlementPaidMap: loadSettlementPaidMap?.() || {}, // ✅ paid flags (if you use it)
+    templates: loadTemplates?.() || [], // optional
+    namesCatalog: loadNamesCatalog?.() || [], // optional
+  };
+}
+
+function applyBackupPayload(payload) {
+  if (!payload || typeof payload !== "object")
+    throw new Error("Invalid backup payload");
+
+  // Support old backups that were just an array of entries:
+  if (Array.isArray(payload)) {
+    entries = payload;
+    persist();
+    return;
+  }
+
+  // New format:
+  entries = Array.isArray(payload.entries) ? payload.entries : [];
+
+  // Restore archives + paid map
+  if (Array.isArray(payload.settledBatches))
+    saveSettledBatches(payload.settledBatches);
+  if (
+    payload.settlementPaidMap &&
+    typeof payload.settlementPaidMap === "object" &&
+    saveSettlementPaidMap
+  ) {
+    saveSettlementPaidMap(payload.settlementPaidMap);
+  }
+
+  // Restore templates + names (optional)
+  if (Array.isArray(payload.templates) && saveTemplates)
+    saveTemplates(payload.templates);
+  if (Array.isArray(payload.namesCatalog) && saveNamesCatalog)
+    saveNamesCatalog(payload.namesCatalog);
+
+  persist();
+}
+
+async function syncBackupIfConnected() {
+  try {
+    const token = gapi?.client?.getToken?.()
+      ? gapi.client.getToken().access_token
+      : null;
+    if (!token) return false;
+    const fileId = await findLatestBackupFileId(token);
+    return await uploadBackupMultipart(token, fileId);
+  } catch {
+    return false;
+  }
+}
+
+// =====================
 // --- INIT ON DOM LOAD ---
 // =====================
 document.addEventListener("DOMContentLoaded", () => {
+  document.body.classList.add("compact"); // default ON
+
   // Wire up a safe click handler too (so button still works if inline onclick changes)
   const connectBtn = document.querySelector("#driveControls button");
   if (connectBtn)
@@ -117,6 +437,60 @@ document.addEventListener("DOMContentLoaded", () => {
   if (grpSel) grpSel.value = "__all__";
 
   checkGoogleLoaded();
+});
+
+document.addEventListener("click", async (e) => {
+  const delBtn = e.target.closest(".name-del-btn");
+  if (!delBtn) return;
+
+  e.preventDefault();
+  e.stopPropagation(); // prevent selecting the row
+
+  const row = delBtn.closest(".name-pick-row");
+  const name = row?.getAttribute("data-name");
+  if (!name) return;
+
+  const { activeCount, archivedCount } = getAllNamesUsedCounts(name);
+
+  if (activeCount > 0 || archivedCount > 0) {
+    // Use your modern confirm/alert if available
+    const msg =
+      `You can't delete "${cleanPersonName(name)}" because it is used.\n\n` +
+      `Active records: ${activeCount}\nArchived records: ${archivedCount}`;
+
+    if (typeof uiConfirm === "function") {
+      await uiConfirm({
+        title: "Can't delete",
+        message: msg,
+        okText: "OK",
+        cancelText: "",
+      });
+    } else {
+      alert(msg);
+    }
+    return;
+  }
+
+  // Confirm delete
+  let ok = true;
+  if (typeof uiConfirm === "function") {
+    ok = await uiConfirm({
+      title: "Delete name?",
+      message: `Delete "${cleanPersonName(name)}" from the list?`,
+      sub: "This name is not used in any record.",
+      okText: "Delete",
+      cancelText: "Cancel",
+    });
+  } else {
+    ok = confirm(`Delete "${cleanPersonName(name)}"?`);
+  }
+  if (!ok) return;
+
+  removeNameFromCatalog(name);
+
+  // Re-render picker list + dropdown displays
+  if (typeof renderNamePickerList === "function") renderNamePickerList();
+  if (typeof renderNameDropdownLists === "function") renderNameDropdownLists();
 });
 
 // =====================
@@ -292,6 +666,39 @@ function loadNamesCatalog() {
     return [];
   }
 }
+
+function getAllNamesUsedCounts(nameRaw) {
+  const target = cleanPersonName(nameRaw);
+  let activeCount = 0;
+  let archivedCount = 0;
+
+  // Active entries
+  (entries || []).forEach((e) => {
+    const paid = (e.paidBy || "").split(/[,&|]+/).map(cleanPersonName);
+    const cons = (e.consumedBy || "").split(/[,&|]+/).map(cleanPersonName);
+    if (paid.includes(target) || cons.includes(target)) activeCount++;
+  });
+
+  // Archived batches (Settled History)
+  const batches = loadSettledBatches ? loadSettledBatches() || [] : [];
+  batches.forEach((b) => {
+    (b.entries || []).forEach((e) => {
+      const paid = (e.paidBy || "").split(/[,&|]+/).map(cleanPersonName);
+      const cons = (e.consumedBy || "").split(/[,&|]+/).map(cleanPersonName);
+      if (paid.includes(target) || cons.includes(target)) archivedCount++;
+    });
+  });
+
+  return { activeCount, archivedCount };
+}
+
+function removeNameFromCatalog(nameRaw) {
+  const target = cleanPersonName(nameRaw);
+  const names = loadNamesCatalog();
+  const filtered = names.filter((n) => cleanPersonName(n) !== target);
+  saveNamesCatalog(filtered);
+}
+
 function saveNamesCatalog(arr) {
   const uniq = Array.from(
     new Set((arr || []).map(cleanPersonName).filter(Boolean))
@@ -717,17 +1124,117 @@ function calculateSummary() {
       else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
     }
   }
+  document.getElementById("settlementArea").innerHTML = (() => {
+    const ctx = _summaryContextKey();
+    const paidMap = loadSettlementPaidMap();
+    const paidForCtx = paidMap?.[ctx] || {};
 
-  document.getElementById("settlementArea").innerHTML = settlements.length
-    ? settlements
-        .map(
-          (s) =>
-            `<div class="settle-item"><i class="fas fa-check-circle"></i> ${
-              s.from
-            } pays ${s.to} <b>${formatCurrency(s.amt)}</b></div>`
-        )
-        .join("")
-    : `<div style="text-align:center; color:#94a3b8;">All Settled</div>`;
+    if (!settlements.length) {
+      return `
+      <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <button class="btn btn-outline btn-small" type="button" id="btnMarkAllPaid">
+          <i class="fas fa-check"></i> Mark All Paid
+        </button>
+        <button class="btn btn-primary btn-small" type="button" id="btnArchiveSettled">
+          <i class="fas fa-archive"></i> Archive (Mark Settled)
+        </button>
+      </div>
+      <div style="text-align:center; color:#94a3b8;">All Settled</div>
+    `;
+    }
+
+    const header = `
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <button class="btn btn-outline btn-small" type="button" id="btnMarkAllPaid">
+        <i class="fas fa-check"></i> Mark All Paid
+      </button>
+      <button class="btn btn-primary btn-small" type="button" id="btnArchiveSettled">
+        <i class="fas fa-archive"></i> Archive (Mark Settled)
+      </button>
+    </div>
+  `;
+
+    const rows = settlements
+      .map((s) => {
+        const k = `${cleanPersonName(s.from)}__${cleanPersonName(s.to)}`;
+        const isPaid = !!paidForCtx[k];
+
+        return `
+      <div class="settle-item ${
+        isPaid ? "settle-paid" : ""
+      }" data-settle-key="${escapeAttr(k)}">
+        <div class="settle-left">
+          <i class="fas fa-check-circle"></i>
+          <div style="min-width:0;">
+            <div>${escapeHtml(s.from)} pays ${escapeHtml(
+          s.to
+        )} <b>${formatCurrency(s.amt)}</b></div>
+            ${
+              isPaid
+                ? `<div style="margin-top:4px;"><span class="badge-paid">Paid</span></div>`
+                : ``
+            }
+          </div>
+        </div>
+
+        <button class="btn btn-outline btn-small btn-toggle-paid" type="button">
+          ${isPaid ? "Undo" : "Paid"}
+        </button>
+      </div>
+    `;
+      })
+      .join("");
+
+    return header + rows;
+  })();
+  wireSettlementButtons(settlements);
+}
+
+function wireSettlementButtons(settlements) {
+  const area = document.getElementById("settlementArea");
+  if (!area) return;
+
+  // Paid/Undo per line
+  area.querySelectorAll(".btn-toggle-paid").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const row = btn.closest("[data-settle-key]");
+      if (!row) return;
+
+      const key = row.getAttribute("data-settle-key");
+      if (!key) return;
+
+      toggleSettlementPaid(key);
+      calculateSummary(); // refresh badge/button text
+    });
+  });
+
+  // Mark all paid
+  const btnAll = area.querySelector("#btnMarkAllPaid");
+  if (btnAll) {
+    btnAll.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const keys = settlements.map(
+        (s) => `${cleanPersonName(s.from)}__${cleanPersonName(s.to)}`
+      );
+      markAllSettlementsPaid(keys);
+      calculateSummary();
+    });
+  }
+
+  // Archive (Mark as Settled)
+  const archBtn = area.querySelector("#btnArchiveSettled");
+  if (archBtn) {
+    archBtn.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      await markCurrentAsSettled(); // your function (already async with uiConfirm)
+    });
+  }
 }
 
 function pad2(n) {
@@ -965,6 +1472,216 @@ function finishCopy() {
 }
 
 // =====================
+// --- SETTLE / ARCHIVE ---
+// =====================
+async function markCurrentAsSettled() {
+  const data = getSummaryFilteredEntries();
+  if (!data.length) {
+    alert("No records in the current Summary filter to settle.");
+    return;
+  }
+
+  const start = summaryStartDate
+    ? new Date(summaryStartDate).toISOString()
+    : null;
+  const end = summaryEndDate ? new Date(summaryEndDate).toISOString() : null;
+  const grp = summaryGroup || "__all__";
+  const total = data.reduce((s, e) => s + parseFloat(e.price || 0), 0);
+
+  const ok = await uiConfirm({
+    title: "Mark as settled?",
+    sub: "This will archive these records and remove them from active data",
+    message: "Do you want to archive these records and start fresh?",
+    okText: "Mark as Settled",
+    cancelText: "Cancel",
+    detailsHtml: `
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div><b>Records:</b> ${data.length}</div>
+        <div><b>Total:</b> ${formatCurrency(total)}</div>
+      </div>
+      <div style="margin-top:8px; color:#64748b; font-size:.85rem;">
+        This will archive these records and remove them from the active list.
+      </div>
+    `,
+  });
+  if (!ok) return;
+
+  const batch = {
+    id: Date.now(),
+    createdAt: new Date().toISOString(),
+    start,
+    end,
+    group: grp,
+    count: data.length,
+    total,
+    entries: data,
+  };
+
+  const batches = loadSettledBatches();
+  batches.unshift(batch);
+  saveSettledBatches(batches);
+
+  const idSet = new Set(data.map((x) => x.id));
+  entries = entries.filter((e) => !idSet.has(e.id));
+
+  persist();
+  refreshSummaryGroupDropdown();
+  refreshListGroupDropdown();
+  renderList();
+  calculateSummary();
+
+  await syncBackupIfConnected();
+
+  // ✅ If Drive connected, auto-backup after archiving
+  try {
+    const token = gapi?.client?.getToken?.()
+      ? gapi.client.getToken().access_token
+      : null;
+    if (token) {
+      const fileId = await findLatestBackupFileId(token);
+      await uploadBackupMultipart(token, fileId);
+    }
+  } catch (e) {
+    console.warn("Auto-backup after archive failed:", e);
+  }
+
+  alert("Settled! The records were archived and removed from active data.");
+}
+
+// =====================
+// --- SETTLED HISTORY UI ---
+// =====================
+function openSettledHistoryModal() {
+  renderSettledHistory();
+  const modal = document.getElementById("modalSettledHistory");
+  if (modal) modal.classList.add("active");
+}
+
+function renderSettledHistory() {
+  const holder = document.getElementById("settledHistoryList");
+  if (!holder) return;
+  const batches = loadSettledBatches();
+
+  if (!batches.length) {
+    holder.innerHTML =
+      '<div style="text-align:center; color:#94a3b8; padding:12px;">No settled batches yet.</div>';
+    return;
+  }
+
+  holder.innerHTML = batches
+    .map((b) => {
+      const dt = new Date(b.createdAt || "").toLocaleString();
+      const grp = b.group && b.group !== "__all__" ? b.group : "All Groups";
+      const range =
+        b.start && b.end
+          ? `${new Date(b.start).toLocaleDateString()} → ${new Date(
+              b.end
+            ).toLocaleDateString()}`
+          : "All Time";
+
+      return `
+      <div class="card" style="padding:12px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:800;">${escapeHtml(grp)}</div>
+            <div style="color:#64748b; font-size:.85rem; margin-top:2px;">
+              ${escapeHtml(range)} • ${escapeHtml(dt)}
+            </div>
+            <div style="margin-top:6px; font-size:.92rem;">
+              <b>${b.count || 0}</b> records • <b>${formatCurrency(
+        b.total || 0
+      )}</b>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-shrink:0;">
+            <button class="btn btn-copy btn-small" type="button" onclick="restoreSettledBatch(${
+              b.id
+            })"><i class="fas fa-rotate-left"></i></button>
+            <button class="btn btn-danger btn-small" type="button" onclick="deleteSettledBatch(${
+              b.id
+            })"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+async function restoreSettledBatch(batchId) {
+  const batches = loadSettledBatches();
+  const idx = batches.findIndex((b) => b.id === batchId);
+  if (idx === -1) {
+    alert("Settled batch not found.");
+    return;
+  }
+  const b = batches[idx];
+
+  const ok = await uiConfirm({
+    title: "Restore settled batch?",
+    sub: "This will move records back to active data",
+    message: "Do you want to restore this batch?",
+    okText: "Restore",
+    cancelText: "Cancel",
+    detailsHtml: `
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div><b>Records:</b> ${b.count || 0}</div>
+        <div><b>Total:</b> ${formatCurrency(b.total || 0)}</div>
+      </div>
+    `,
+  });
+  if (!ok) return;
+
+  entries = [...entries, ...(b.entries || [])];
+  batches.splice(idx, 1);
+  saveSettledBatches(batches);
+
+  persist();
+  refreshSummaryGroupDropdown();
+  refreshListGroupDropdown();
+  renderList();
+  calculateSummary();
+  renderSettledHistory();
+
+  await syncBackupIfConnected();
+
+  alert("Restored! The records are back in active data.");
+}
+
+async function deleteSettledBatch(batchId) {
+  const batches = loadSettledBatches();
+  const idx = batches.findIndex((b) => b.id === batchId);
+  if (idx === -1) {
+    alert("Settled batch not found.");
+    return;
+  }
+  const b = batches[idx];
+
+  const ok = await uiConfirm({
+    title: "Delete settled batch?",
+    sub: "This cannot be undone",
+    message: "Do you want to permanently delete this settled batch?",
+    okText: "Delete",
+    cancelText: "Cancel",
+    detailsHtml: `
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div><b>Records:</b> ${b.count || 0}</div>
+        <div><b>Total:</b> ${formatCurrency(b.total || 0)}</div>
+      </div>
+    `,
+  });
+  if (!ok) return;
+
+  batches.splice(idx, 1);
+  saveSettledBatches(batches);
+  renderSettledHistory();
+
+  await syncBackupIfConnected();
+
+  alert("Deleted from Settled History.");
+}
+
+// =====================
 // --- CSV IMPORT/EXPORT ---
 // =====================
 function handleFileSelect(input) {
@@ -1038,44 +1755,317 @@ function importCSV(csvText) {
   }
 }
 
+function xmlEscape(v) {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function sheetXml(name, rows) {
+  // rows = array of arrays
+  const safeName = xmlEscape(name).slice(0, 31); // Excel sheet name max ~31 chars
+  const rowXml = rows
+    .map((r) => {
+      const cells = r
+        .map(
+          (c) => `<Cell><Data ss:Type="String">${xmlEscape(c)}</Data></Cell>`
+        )
+        .join("");
+      return `<Row>${cells}</Row>`;
+    })
+    .join("");
+
+  return `
+    <Worksheet ss:Name="${safeName}">
+      <Table>
+        ${rowXml}
+      </Table>
+    </Worksheet>
+  `;
+}
+
+function computeSummaryForExport(data) {
+  const paidTotals = {};
+  const consTotals = {};
+  const debts = {};
+
+  data.forEach((entry) => {
+    const price = parseFloat(entry.price || 0);
+    const payers = (entry.paidBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter(Boolean);
+
+    const consumers = (entry.consumedBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter(Boolean);
+
+    if (payers.length === 0 || consumers.length === 0 || !(price > 0)) return;
+
+    const amountPerPayer = price / payers.length;
+    const amountPerConsumer = price / consumers.length;
+
+    payers.forEach(
+      (p) => (paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer)
+    );
+    consumers.forEach(
+      (c) => (consTotals[c] = (consTotals[c] || 0) + amountPerConsumer)
+    );
+
+    const debtPerPayer = amountPerConsumer / payers.length;
+    consumers.forEach((c) => {
+      payers.forEach((p) => {
+        if (c !== p) {
+          if (!debts[c]) debts[c] = {};
+          debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+        }
+      });
+    });
+  });
+
+  // Simplify pairwise debts -> settlements
+  const settlements = [];
+  const people = Array.from(
+    new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)])
+  );
+
+  for (let i = 0; i < people.length; i++) {
+    for (let j = i + 1; j < people.length; j++) {
+      const p1 = people[i],
+        p2 = people[j];
+      const d1 = (debts[p1] && debts[p1][p2]) || 0;
+      const d2 = (debts[p2] && debts[p2][p1]) || 0;
+      const net = d1 - d2;
+
+      if (net > 0.01) settlements.push({ from: p1, to: p2, amt: net });
+      else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
+    }
+  }
+
+  return { paidTotals, consTotals, settlements };
+}
+
 function executeExport(type) {
+  // Backward compatibility (if any old button still calls "share")
+  if (type === "share") type = "sharexls";
+
   const sVal = document.getElementById("expStart").value;
   const eVal = document.getElementById("expEnd").value;
 
   let data = entries;
+
+  // Filter by date range (if provided)
   if (sVal && eVal) {
     const s = new Date(sVal);
     const e = new Date(eVal);
     e.setHours(23, 59, 59, 999);
+
     data = entries.filter((x) => {
       const d = new Date(x.date);
       return d >= s && d <= e;
     });
   }
 
-  let csv = "Date,Item,Price,PaidBy,ConsumedBy,Description,Group\n";
-  data.forEach((r) => {
-    const d = new Date(r.date).toLocaleDateString();
-    csv += `${d},"${(r.item || "").replace(/"/g, '""')}",${r.price},"${(
-      r.paidBy || ""
-    ).replace(/"/g, '""')}","${(r.consumedBy || "").replace(/"/g, '""')}","${(
-      r.desc || ""
-    ).replace(/"/g, '""')}","${(r.group || "").replace(/"/g, '""')}"\n`;
+  // ===== Helpers for XLS (Excel XML) =====
+  function xmlEscape(v) {
+    return String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  function sheetXml(name, rows) {
+    const safeName = xmlEscape(name).slice(0, 31);
+    const rowXml = rows
+      .map((r) => {
+        const cells = r
+          .map(
+            (c) => `<Cell><Data ss:Type="String">${xmlEscape(c)}</Data></Cell>`
+          )
+          .join("");
+        return `<Row>${cells}</Row>`;
+      })
+      .join("");
+
+    return `
+      <Worksheet ss:Name="${safeName}">
+        <Table>${rowXml}</Table>
+      </Worksheet>
+    `;
+  }
+
+  function computeSummaryForExport(data) {
+    const paidTotals = {};
+    const consTotals = {};
+    const debts = {};
+
+    data.forEach((entry) => {
+      const price = parseFloat(entry.price || 0);
+      const payers = (entry.paidBy || "")
+        .split(/[,&|]+/)
+        .map(cleanPersonName)
+        .filter(Boolean);
+
+      const consumers = (entry.consumedBy || "")
+        .split(/[,&|]+/)
+        .map(cleanPersonName)
+        .filter(Boolean);
+
+      if (payers.length === 0 || consumers.length === 0 || !(price > 0)) return;
+
+      const amountPerPayer = price / payers.length;
+      const amountPerConsumer = price / consumers.length;
+
+      payers.forEach(
+        (p) => (paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer)
+      );
+      consumers.forEach(
+        (c) => (consTotals[c] = (consTotals[c] || 0) + amountPerConsumer)
+      );
+
+      const debtPerPayer = amountPerConsumer / payers.length;
+      consumers.forEach((c) => {
+        payers.forEach((p) => {
+          if (c !== p) {
+            if (!debts[c]) debts[c] = {};
+            debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+          }
+        });
+      });
+    });
+
+    // Pairwise simplify -> settlements
+    const settlements = [];
+    const people = Array.from(
+      new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)])
+    );
+
+    for (let i = 0; i < people.length; i++) {
+      for (let j = i + 1; j < people.length; j++) {
+        const p1 = people[i],
+          p2 = people[j];
+        const d1 = (debts[p1] && debts[p1][p2]) || 0;
+        const d2 = (debts[p2] && debts[p2][p1]) || 0;
+        const net = d1 - d2;
+
+        if (net > 0.01) settlements.push({ from: p1, to: p2, amt: net });
+        else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
+      }
+    }
+
+    return { paidTotals, consTotals, settlements };
+  }
+
+  // ===== Build rows =====
+  const recordsRows = [
+    [
+      "Date",
+      "Time",
+      "Item",
+      "Price",
+      "Paid By",
+      "Consumed By",
+      "Group",
+      "Description",
+    ],
+    ...data
+      .slice()
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map((r) => {
+        const dt = new Date(r.date);
+        const dateStr = dt.toLocaleDateString();
+        const timeStr = dt.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return [
+          dateStr,
+          timeStr,
+          r.item || "",
+          String(parseFloat(r.price || 0).toFixed(2)),
+          r.paidBy || "",
+          r.consumedBy || "",
+          r.group || "",
+          r.desc || "",
+        ];
+      }),
+  ];
+
+  const totalAmount = data.reduce((s, e) => s + parseFloat(e.price || 0), 0);
+  const { paidTotals, consTotals, settlements } = computeSummaryForExport(data);
+
+  const summaryRows = [
+    ["Export Range", `${sVal || "All"}  →  ${eVal || "All"}`],
+    ["Records Count", String(data.length)],
+    ["Total", formatCurrency(totalAmount)],
+    [""],
+    ["WHO PAID", ""],
+    ["Name", "Amount"],
+    ...Object.keys(paidTotals)
+      .sort()
+      .map((k) => [k, formatCurrency(paidTotals[k])]),
+    [""],
+    ["WHO CONSUMED", ""],
+    ["Name", "Amount"],
+    ...Object.keys(consTotals)
+      .sort()
+      .map((k) => [k, formatCurrency(consTotals[k])]),
+  ];
+
+  const settlementRows = [
+    ["From", "To", "Amount"],
+    ...settlements.map((s) => [s.from, s.to, formatCurrency(s.amt)]),
+  ];
+
+  // ===== Excel XML workbook =====
+  const workbookXml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook
+  xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40">
+
+  ${sheetXml("Records", recordsRows)}
+  ${sheetXml("Summary", summaryRows)}
+  ${sheetXml("Settlements", settlementRows)}
+
+</Workbook>`;
+
+  const blob = new Blob([workbookXml], {
+    type: "application/vnd.ms-excel;charset=utf-8",
   });
 
-  const file = new File([csv], "expenses.csv", { type: "text/csv" });
+  const filename = `expenses_${sVal || "all"}_${eVal || "all"}.xls`;
+
+  // ===== SHARE XLS or DOWNLOAD fallback =====
+  const file = new File([blob], filename, { type: blob.type });
 
   if (
-    type === "share" &&
+    type === "sharexls" &&
+    navigator.share &&
     navigator.canShare &&
     navigator.canShare({ files: [file] })
   ) {
-    navigator.share({ files: [file] });
+    navigator.share({
+      files: [file],
+      title: "Expense Export",
+      text: "Expense export (Excel)",
+    });
   } else {
+    // download fallback
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(file);
-    a.download = "expenses.csv";
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   closeModal("modalExport");
@@ -1313,7 +2303,8 @@ function setDriveButtonLoading(btnId, loading) {
 }
 
 async function uploadBackupMultipart(token, fileIdOrNull) {
-  const blob = new Blob([JSON.stringify(entries)], {
+  const payload = buildBackupPayload();
+  const blob = new Blob([JSON.stringify(payload)], {
     type: "application/json",
   });
   const metadata = { name: BACKUP_FILENAME, mimeType: "application/json" };
@@ -1366,10 +2357,12 @@ async function backupToDrive() {
 
 async function restoreFromDrive(silent = false) {
   if (!silent) setDriveButtonLoading("btnRestoreDrive", true);
+
   try {
     const token = gapi.client.getToken()
       ? gapi.client.getToken().access_token
       : null;
+
     if (!token) {
       if (!silent) alert("Not logged in!");
       return false;
@@ -1383,21 +2376,23 @@ async function restoreFromDrive(silent = false) {
 
     const fileRes = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      {
-        headers: { Authorization: "Bearer " + token },
-      }
+      { headers: { Authorization: "Bearer " + token } }
     );
 
     const text = await fileRes.text();
     const parsed = JSON.parse(text);
 
-    if (!Array.isArray(parsed)) {
+    // Accept old backups (array) and new backups (object)
+    if (!(Array.isArray(parsed) || (parsed && typeof parsed === "object"))) {
       if (!silent) alert("Backup file is invalid.");
       return false;
     }
 
-    // Upgrade older backups that don't have `group`
-    entries = parsed.map((e) => ({
+    // ✅ Restore entries + settled batches + paid-map + templates + names
+    applyBackupPayload(parsed);
+
+    // ✅ Normalize entries shape AFTER applyBackupPayload
+    entries = (entries || []).map((e) => ({
       id: e.id ?? Date.now(),
       date: e.date ?? new Date().toISOString(),
       item: e.item ?? "",
@@ -1408,10 +2403,27 @@ async function restoreFromDrive(silent = false) {
       desc: e.desc ?? "",
     }));
 
+    // ✅ If backup is new format, normalize settled batches too (optional but safer)
+    const batches = loadSettledBatches?.() || [];
+    if (Array.isArray(batches) && saveSettledBatches) {
+      const normalized = batches.map((b) => ({
+        id: b.id ?? Date.now(),
+        createdAt: b.createdAt ?? new Date().toISOString(),
+        start: b.start ?? null,
+        end: b.end ?? null,
+        group: b.group ?? "__all__",
+        count: b.count ?? (Array.isArray(b.entries) ? b.entries.length : 0),
+        total: b.total ?? 0,
+        entries: Array.isArray(b.entries) ? b.entries : [],
+      }));
+      saveSettledBatches(normalized);
+    }
+
     persist();
     refreshSummaryGroupDropdown();
     refreshListGroupDropdown();
     renderList();
+    calculateSummary(); // ✅ IMPORTANT (refresh settlement section)
 
     if (!silent) alert("Backup restored!");
     return true;
@@ -1654,20 +2666,24 @@ function renderNamePickerList() {
           : `<input type="checkbox" ${isCons ? "checked" : ""} />`;
 
       return `
-      <div class="name-pick-row" onclick="namePickerToggle('${escapeHtml(n)}')">
-        <div class="left">
-          ${inputHtml}
-          <div style="min-width:0;">
-            <div class="nm">${escapeHtml(n)}</div>
-            <div class="sub">${
-              _namePickerMode === "paid"
-                ? "Tap to set as payer"
-                : "Tap to include/exclude"
-            }</div>
-          </div>
-        </div>
+  <div class="name-pick-row" data-name="${escapeHtml(n)}">
+    <div class="left">
+      ${inputHtml}
+      <div style="min-width:0;">
+        <div class="nm">${escapeHtml(n)}</div>
+        <div class="sub">${
+          _namePickerMode === "paid"
+            ? "Tap to set as payer"
+            : "Tap to include/exclude"
+        }</div>
       </div>
-    `;
+    </div>
+
+    <button class="name-del-btn" type="button" title="Delete name" aria-label="Delete name">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+`;
     })
     .join("");
 }
@@ -1694,10 +2710,15 @@ function namePickerToggle(name) {
   renderNamePickerList();
 }
 
-// // expose for inline onclick
-// Object.assign(window, {switchView, setListPeriod, shiftListDate, openListDatePicker, onListDatePicked, openMonthPicker, shiftMonthPicker, pickMonth, toggleNameDropdown, addNameFromInput, selectPaidName, toggleConsumedName, openEntryModal, saveEntry, editEntry, deleteEntry, triggerCopy, confirmCopyWithDate, openTemplatesModal, saveCurrentAsTemplate, applyTemplate, deleteTemplate, backupToDrive, restoreFromDrive, handleAuthClick, openDateModal, applyDateFilter, resetDates, openExportModal, executeExport, clearAllData, closeModal,openNamePicker, closeNamePicker, namePickerAddNew, renderNamePickerList, namePickerToggle});
-
 Object.assign(window, {
+  markCurrentAsSettled,
+  openSettledHistoryModal,
+  renderSettledHistory,
+  restoreSettledBatch,
+  deleteSettledBatch,
+  uiConfirmClose,
+  toggleSettlementPaid,
+  markAllSettlementsPaid,
   openNamePicker,
   closeNamePicker,
   namePickerAddNew,
@@ -1733,4 +2754,10 @@ Object.assign(window, {
   executeExport,
   clearAllData,
   closeModal,
+
+  setSettlementPaid,
+  markAllSettlementsPaid,
+  markCurrentAsSettled,
+  restoreSettledBatch,
+  deleteSettledBatch,
 });
