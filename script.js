@@ -2772,6 +2772,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+document.addEventListener("focusin", (e) => {
+  if (!e.target.closest("#modalNamePicker")) return;
+  if (e.target.matches("input[type='text'], input[type='search']") && e.target.hasAttribute("readonly")) {
+    e.target.blur();
+  }
+});
+
 Object.assign(window, {
   markCurrentAsSettled,
   openSettledHistoryModal,
