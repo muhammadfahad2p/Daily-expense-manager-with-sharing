@@ -175,24 +175,6 @@ document.addEventListener("click", (e) => {
   if (!overlay || !overlay.classList.contains("active")) return;
   if (e.target === overlay) uiConfirmClose(false);
 });
-
-
-
-document.addEventListener("pointerdown", (e) => {
-  const inp = e.target.closest("#modalNamePicker input[type='text'], #modalNamePicker input[type='search']");
-  if (!inp) return;
-
-  // Allow typing only when user taps the input
-  inp.removeAttribute("readonly");
-
-  // Small delay helps mobile browsers focus correctly
-  setTimeout(() => inp.focus(), 0);
-});
-
-
-
-
-
 document.addEventListener("keydown", (e) => {
   const overlay = document.getElementById("uiConfirmOverlay");
   if (!overlay || !overlay.classList.contains("active")) return;
