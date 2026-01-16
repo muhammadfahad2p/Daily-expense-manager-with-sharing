@@ -2594,10 +2594,7 @@ document.activeElement?.blur();
   const modal = document.getElementById("modalNamePicker");
   if (modal) modal.classList.add("active");
 
-  // focus new-name input for fast add
-  setTimeout(() => {
-    if (n) n.focus();
-  }, 50);
+ 
 }
 window.openNamePicker = openNamePicker;
 
