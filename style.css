@@ -1179,3 +1179,9 @@ body.compact .pill {
 .name-del-btn i {
   font-size: 0.95rem;
 }
+
+
+/* Prevent accidental focus on name picker open */
+#modalNamePicker input:focus {
+  outline: none;
+}
