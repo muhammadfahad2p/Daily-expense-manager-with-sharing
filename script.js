@@ -175,6 +175,38 @@ document.addEventListener("click", (e) => {
   if (!overlay || !overlay.classList.contains("active")) return;
   if (e.target === overlay) uiConfirmClose(false);
 });
+
+
+
+document.addEventListener("pointerdown", (e) => {
+  const inp = e.target.closest("#modalNamePicker input[type='text'], #modalNamePicker input[type='search']");
+  if (!inp) return;
+
+  // Allow typing only when user taps the input
+  inp.removeAttribute("readonly");
+
+  // Small delay helps mobile browsers focus correctly
+  setTimeout(() => inp.focus(), 0);
+});
+
+
+
+
+
+document.addEventListener("focusin", (e) => {
+  if (!e.target.closest("#modalNamePicker")) return;
+  if (e.target.matches("input[type='text'], input[type='search']") && e.target.hasAttribute("readonly")) {
+    e.target.blur();
+  }
+});
+
+
+
+
+
+
+
+
 document.addEventListener("keydown", (e) => {
   const overlay = document.getElementById("uiConfirmOverlay");
   if (!overlay || !overlay.classList.contains("active")) return;
@@ -2565,6 +2597,20 @@ function openNamePicker(mode) {
   _namePickerMode = mode;
 // Prevent keyboard from opening
 document.activeElement?.blur();
+
+
+
+const modal = document.getElementById("modalNamePicker");
+  if (!modal) return;
+
+  // ✅ stop keyboard
+  preventNamePickerAutoFocus(true);
+
+  modal.classList.add("active");
+
+
+
+
   // title + hints
   const title = document.getElementById("namePickerTitle");
   const hint = document.getElementById("namePickerHint");
@@ -2587,6 +2633,14 @@ document.activeElement?.blur();
   if (n) n.value = "";
 
   renderNamePickerList();
+  
+  
+   // Keep readonly for a moment (Android needs this)
+  setTimeout(() => preventNamePickerAutoFocus(true), 50);
+}
+  
+  
+  
 
   const modal = document.getElementById("modalNamePicker");
   if (modal) modal.classList.add("active");
@@ -2779,6 +2833,24 @@ document.addEventListener("DOMContentLoaded", () => {
     namePickerToggle(name);
   });
 });
+
+function preventNamePickerAutoFocus(enable) {
+  const modal = document.getElementById("modalNamePicker");
+  if (!modal) return;
+
+  const inputs = modal.querySelectorAll("input[type='text'], input[type='search']");
+  inputs.forEach(inp => {
+    if (enable) {
+      inp.setAttribute("readonly", "readonly");
+      inp.blur();
+    } else {
+      inp.removeAttribute("readonly");
+    }
+  });
+
+  // Also blur anything currently focused
+  document.activeElement?.blur();
+}
 
 Object.assign(window, {
   markCurrentAsSettled,
