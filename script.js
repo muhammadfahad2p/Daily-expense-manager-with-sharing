@@ -2565,20 +2565,6 @@ function openNamePicker(mode) {
   _namePickerMode = mode;
 // Prevent keyboard from opening
 document.activeElement?.blur();
-
-
-
-const modal = document.getElementById("modalNamePicker");
-  if (!modal) return;
-
-  // ✅ stop keyboard
-  preventNamePickerAutoFocus(true);
-
-  modal.classList.add("active");
-
-
-
-
   // title + hints
   const title = document.getElementById("namePickerTitle");
   const hint = document.getElementById("namePickerHint");
@@ -2601,8 +2587,6 @@ const modal = document.getElementById("modalNamePicker");
   if (n) n.value = "";
 
   renderNamePickerList();
-  
-  
 
   const modal = document.getElementById("modalNamePicker");
   if (modal) modal.classList.add("active");
