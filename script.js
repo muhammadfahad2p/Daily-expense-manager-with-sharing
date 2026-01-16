@@ -2551,11 +2551,20 @@ function deleteTemplate(idx) {
   renderTemplatesList();
 }
 
+document.addEventListener("click", (e) => {
+  const inp = e.target.closest("#modalNamePicker input");
+  if (!inp) return;
+
+  // Allow focus ONLY on user interaction
+  setTimeout(() => inp.focus(), 0);
+});
+
 let _namePickerMode = "paid"; // 'paid' | 'consumed'
 
 function openNamePicker(mode) {
   _namePickerMode = mode;
-
+// Prevent keyboard from opening
+document.activeElement?.blur();
   // title + hints
   const title = document.getElementById("namePickerTitle");
   const hint = document.getElementById("namePickerHint");
