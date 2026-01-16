@@ -2666,7 +2666,7 @@ function renderNamePickerList() {
           : `<input type="checkbox" ${isCons ? "checked" : ""} />`;
 
       return `
-  <div class="name-pick-row" data-name="${escapeHtml(n)}">
+  <div class="name-pick-row" data-name="${encodeURIComponent(n)}">
     <div class="left">
       ${inputHtml}
       <div style="min-width:0;">
@@ -2709,6 +2709,67 @@ function namePickerToggle(name) {
   document.getElementById("inpConsumed").value = arr.join(", ");
   renderNamePickerList();
 }
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const list = document.getElementById("namePickerList");
+  if (!list) return;
+
+  list.addEventListener("click", async (e) => {
+    const delBtn = e.target.closest(".name-del-btn");
+    const row = e.target.closest(".name-pick-row");
+    if (!row) return;
+
+    // Prevent other global click handlers from interfering
+    e.preventDefault();
+    e.stopPropagation();
+
+    const raw = row.getAttribute("data-name") || "";
+    const name = decodeURIComponent(raw || "");
+
+    // Delete
+    if (delBtn) {
+      const { activeCount, archivedCount } = getAllNamesUsedCounts(name);
+
+      if (activeCount > 0 || archivedCount > 0) {
+        const msg =
+          `You can't delete "${cleanPersonName(name)}" because it is used.\n\n` +
+          `Active records: ${activeCount}\nArchived records: ${archivedCount}`;
+
+        if (typeof uiConfirm === "function") {
+          await uiConfirm({ title: "Can't delete", message: msg, okText: "OK" });
+        } else {
+          alert(msg);
+        }
+        return;
+      }
+
+      let ok = true;
+      if (typeof uiConfirm === "function") {
+        ok = await uiConfirm({
+          title: "Delete name?",
+          message: `Delete "${cleanPersonName(name)}" from the list?`,
+          sub: "This name is not used in any record.",
+          okText: "Delete",
+          cancelText: "Cancel",
+        });
+      } else {
+        ok = confirm(`Delete "${cleanPersonName(name)}"?`);
+      }
+
+      if (!ok) return;
+
+      removeNameFromCatalog(name);
+      renderNamePickerList();
+      renderNameDropdownLists();
+      return;
+    }
+
+    // Select name
+    namePickerToggle(name);
+  });
+});
 
 Object.assign(window, {
   markCurrentAsSettled,
