@@ -2551,14 +2551,6 @@ function deleteTemplate(idx) {
   renderTemplatesList();
 }
 
-document.addEventListener("click", (e) => {
-  const inp = e.target.closest("#modalNamePicker input");
-  if (!inp) return;
-
-  // Allow focus ONLY on user interaction
-  setTimeout(() => inp.focus(), 0);
-});
-
 let _namePickerMode = "paid"; // 'paid' | 'consumed'
 
 function openNamePicker(mode) {
@@ -2779,24 +2771,6 @@ document.addEventListener("DOMContentLoaded", () => {
     namePickerToggle(name);
   });
 });
-
-function preventNamePickerAutoFocus(enable) {
-  const modal = document.getElementById("modalNamePicker");
-  if (!modal) return;
-
-  const inputs = modal.querySelectorAll("input[type='text'], input[type='search']");
-  inputs.forEach(inp => {
-    if (enable) {
-      inp.setAttribute("readonly", "readonly");
-      inp.blur();
-    } else {
-      inp.removeAttribute("readonly");
-    }
-  });
-
-  // Also blur anything currently focused
-  document.activeElement?.blur();
-}
 
 Object.assign(window, {
   markCurrentAsSettled,
