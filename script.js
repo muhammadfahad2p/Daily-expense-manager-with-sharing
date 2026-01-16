@@ -2603,12 +2603,6 @@ const modal = document.getElementById("modalNamePicker");
   renderNamePickerList();
   
   
-   // Keep readonly for a moment (Android needs this)
-  setTimeout(() => preventNamePickerAutoFocus(true), 50);
-}
-  
-  
-  
 
   const modal = document.getElementById("modalNamePicker");
   if (modal) modal.classList.add("active");
