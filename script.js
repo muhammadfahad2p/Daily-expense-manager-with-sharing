@@ -193,20 +193,6 @@ document.addEventListener("pointerdown", (e) => {
 
 
 
-document.addEventListener("focusin", (e) => {
-  if (!e.target.closest("#modalNamePicker")) return;
-  if (e.target.matches("input[type='text'], input[type='search']") && e.target.hasAttribute("readonly")) {
-    e.target.blur();
-  }
-});
-
-
-
-
-
-
-
-
 document.addEventListener("keydown", (e) => {
   const overlay = document.getElementById("uiConfirmOverlay");
   if (!overlay || !overlay.classList.contains("active")) return;
