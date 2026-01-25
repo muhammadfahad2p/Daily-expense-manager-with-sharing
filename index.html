@@ -16,7 +16,7 @@
     <!-- Google Identity Services (Async Load) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
-    <link rel="stylesheet" href="style.css?v=4" />
+    <link rel="stylesheet" href="style.css?v=1" />
     <link rel="icon" href="favicon.ico" />
   </head>
   <body>
@@ -168,6 +168,16 @@
       </div>
 
       <div class="section-box">
+        <div class="row" style="justify-content: flex-end; margin-bottom: 8px">
+          <label class="toggle">
+            <input
+              type="checkbox"
+              id="toggleSimpleSettle"
+              onchange="calculateSummary()"
+            />
+            <span>Simple Settlements</span>
+          </label>
+        </div>
         <div class="box-header">
           <span>Settlement</span>
           <i class="fas fa-handshake" style="color: var(--success)"></i>
@@ -814,6 +824,6 @@
       </div>
     </div>
 
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=1"></script>
   </body>
 </html>

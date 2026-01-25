@@ -1180,4 +1180,43 @@ body.compact .pill {
   font-size: 0.95rem;
 }
 
+/* Group-wise settlement sections */
+.settlement-group {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+.settlement-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sg-title {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settle-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.settle-actions .btn {
+  flex: 1;
+  min-width: 140px;
+}
+.settlement-list .settle-item:last-child {
+  margin-bottom: 0;
+}
 
+.namePickRow input {
+  pointer-events: none;
+}

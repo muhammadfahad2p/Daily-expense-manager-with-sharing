@@ -181,17 +181,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") uiConfirmClose(false);
 });
 
-
-document.addEventListener("pointerdown", (e) => {
-  const inp = e.target.closest("#modalNamePicker input[type='text'], #modalNamePicker input[type='search']");
-  if (!inp) return;
-
-  // Allow typing only when user taps the input
-  inp.removeAttribute("readonly");
-
-  // Small delay helps mobile browsers focus correctly
-  setTimeout(() => inp.focus(), 0);
-});
 // =====================
 // --- SETTLED BATCHES ---
 // =====================
@@ -234,9 +223,10 @@ function loadSettlementPaidMap() {
 }
 
 function escapeAttr(s) {
-  return String(s ?? "")
+  return (s || "")
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
@@ -258,6 +248,257 @@ function _summaryContextKey() {
   const g = summaryGroup || "__all__";
   return `${s}|${e}|${g}`;
 }
+
+function _summaryContextKeyForGroup(groupName) {
+  const s = summaryStartDate
+    ? new Date(summaryStartDate).toISOString().slice(0, 10)
+    : "all";
+  const e = summaryEndDate
+    ? new Date(summaryEndDate).toISOString().slice(0, 10)
+    : "all";
+  const g = groupName ? String(groupName) : "__all__";
+  return `${s}|${e}|${g}`;
+}
+
+function toggleSettlementPaidForCtx(ctx, k) {
+  const paidMap = loadSettlementPaidMap();
+  if (!paidMap[ctx]) paidMap[ctx] = {};
+  if (paidMap[ctx][k]) delete paidMap[ctx][k];
+  else paidMap[ctx][k] = 1;
+  saveSettlementPaidMap(paidMap);
+}
+
+function markAllSettlementsPaidForCtx(ctx, keysOrJson) {
+  const paidMap = loadSettlementPaidMap();
+  if (!paidMap[ctx]) paidMap[ctx] = {};
+
+  // ✅ Accept array OR JSON string (backward compatible)
+  let keys = [];
+  if (Array.isArray(keysOrJson)) keys = keysOrJson;
+  else if (typeof keysOrJson === "string") {
+    try {
+      keys = JSON.parse(keysOrJson);
+    } catch (e) {
+      keys = [];
+    }
+  }
+
+  keys.forEach((k) => (paidMap[ctx][k] = 1));
+  saveSettlementPaidMap(paidMap);
+}
+
+function computeSettlementsForData(data) {
+  const paidTotals = {};
+  const consTotals = {};
+  const debts = {};
+
+  data.forEach((entry) => {
+    const price = parseFloat(entry.price);
+    const payers = (entry.paidBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter((n) => n);
+    const consumers = (entry.consumedBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter((n) => n);
+    if (payers.length === 0 || consumers.length === 0 || !(price > 0)) return;
+
+    const amountPerPayer = price / payers.length;
+    const amountPerConsumer = price / consumers.length;
+
+    payers.forEach((p) => {
+      paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer;
+    });
+    consumers.forEach((c) => {
+      consTotals[c] = (consTotals[c] || 0) + amountPerConsumer;
+    });
+
+    const debtPerPayer = amountPerConsumer / payers.length;
+    consumers.forEach((c) => {
+      payers.forEach((p) => {
+        if (c !== p) {
+          if (!debts[c]) debts[c] = {};
+          debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
+        }
+      });
+    });
+  });
+
+  // Simplify pairwise debts
+  const settlements = [];
+  const people = Array.from(
+    new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)])
+  );
+  for (let i = 0; i < people.length; i++) {
+    for (let j = i + 1; j < people.length; j++) {
+      const p1 = people[i],
+        p2 = people[j];
+      const d1 = (debts[p1] && debts[p1][p2]) || 0;
+      const d2 = (debts[p2] && debts[p2][p1]) || 0;
+      const net = d1 - d2;
+      if (net > 0.01) settlements.push({ from: p1, to: p2, amt: net });
+      else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
+    }
+  }
+
+  return { paidTotals, consTotals, settlements };
+}
+
+function computeSimplifiedSettlements(data) {
+  const paidTotals = {};
+  const consTotals = {};
+
+  // Step 1: totals
+  data.forEach((e) => {
+    const price = parseFloat(e.price || 0);
+    if (!(price > 0)) return;
+
+    const payers = (e.paidBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter(Boolean);
+
+    const consumers = (e.consumedBy || "")
+      .split(/[,&|]+/)
+      .map(cleanPersonName)
+      .filter(Boolean);
+
+    if (!payers.length || !consumers.length) return;
+
+    const payShare = price / payers.length;
+    const consShare = price / consumers.length;
+
+    payers.forEach((p) => (paidTotals[p] = (paidTotals[p] || 0) + payShare));
+    consumers.forEach(
+      (c) => (consTotals[c] = (consTotals[c] || 0) + consShare)
+    );
+  });
+
+  // Step 2: net balances
+  const balance = {};
+  const people = new Set([
+    ...Object.keys(paidTotals),
+    ...Object.keys(consTotals),
+  ]);
+
+  people.forEach((p) => {
+    balance[p] = (paidTotals[p] || 0) - (consTotals[p] || 0);
+  });
+
+  // Step 3: split into payers & receivers
+  const receivers = [];
+  const payers = [];
+
+  Object.entries(balance).forEach(([name, amt]) => {
+    if (amt > 0.01) receivers.push({ name, amt });
+    else if (amt < -0.01) payers.push({ name, amt: -amt });
+  });
+
+  // Step 4: match
+  const settlements = [];
+  let i = 0,
+    j = 0;
+
+  while (i < payers.length && j < receivers.length) {
+    const pay = payers[i];
+    const rec = receivers[j];
+    const x = Math.min(pay.amt, rec.amt);
+
+    settlements.push({
+      from: pay.name,
+      to: rec.name,
+      amt: x,
+    });
+
+    pay.amt -= x;
+    rec.amt -= x;
+
+    if (pay.amt < 0.01) i++;
+    if (rec.amt < 0.01) j++;
+  }
+
+  return settlements;
+}
+
+function renderSettlementSection(
+  title,
+  settlements,
+  ctxKey,
+  groupNameForArchive
+) {
+  const paidMap = loadSettlementPaidMap();
+  const paidForCtx = paidMap?.[ctxKey] || {};
+
+  const actions = `
+    <div class="settle-actions">
+      <button class="btn btn-outline btn-small" type="button" data-action="markAllPaid" data-ctx="${escapeAttr(
+        ctxKey
+      )}">
+        <i class="fas fa-check"></i> Mark All Paid
+      </button>
+      <button class="btn btn-primary btn-small" type="button" data-action="archiveSettled" data-group="${escapeAttr(
+        groupNameForArchive
+      )}">
+        <i class="fas fa-archive"></i> Archive (Mark Settled)
+      </button>
+    </div>
+  `;
+
+  if (!settlements.length) {
+    return `
+      <div class="settlement-group">
+        <div class="settlement-group-head">
+          <div class="sg-title">${escapeHtml(title)}</div>
+        </div>
+        ${actions}
+        <div style="text-align:center; color:#94a3b8; padding:10px 0;">All Settled</div>
+      </div>
+    `;
+  }
+
+  const rows = settlements
+    .map((s) => {
+      const k = `${cleanPersonName(s.from)}__${cleanPersonName(s.to)}`;
+      const isPaid = !!paidForCtx[k];
+
+      return `
+        <div class="settle-item ${
+          isPaid ? "settle-paid" : ""
+        }" data-settle-key="${escapeAttr(k)}" data-ctx="${escapeAttr(ctxKey)}">
+          <div class="settle-left">
+            <i class="fas fa-check-circle"></i>
+            <div style="min-width:0;">
+              <div>${escapeHtml(s.from)} pays ${escapeHtml(
+        s.to
+      )} <b>${formatCurrency(s.amt)}</b></div>
+              ${
+                isPaid
+                  ? `<div style="margin-top:4px;"><span class="badge-paid">Paid</span></div>`
+                  : ``
+              }
+            </div>
+          </div>
+
+          <button class="btn btn-outline btn-small btn-toggle-paid" type="button">
+            ${isPaid ? "Undo" : "Paid"}
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="settlement-group">
+      <div class="settlement-group-head">
+        <div class="sg-title">${escapeHtml(title)}</div>
+      </div>
+      ${actions}
+      <div class="settlement-list">${rows}</div>
+    </div>
+  `;
+}
+
 function loadSettlementPaidMap() {
   try {
     const raw = localStorage.getItem(SETTLEMENT_PAID_KEY);
@@ -776,13 +1017,15 @@ function renderNameDropdownLists() {
         .map((n) => {
           const checked = cleanPersonName(n) === selected ? "checked" : "";
           return `
-        <label class="name-opt" onclick="selectPaidName('${escapeHtml(n)}')">
-          <span class="left">
-            <input type="radio" name="paidRadio" ${checked} />
-            <span class="lbl">${escapeHtml(n)}</span>
-          </span>
-        </label>
-      `;
+            <label class="name-opt" onclick="selectPaidName('${escapeHtml(
+              n
+            )}')">
+              <span class="left">
+                <input type="radio" name="paidRadio" ${checked} />
+                <span class="lbl">${escapeHtml(n)}</span>
+              </span>
+            </label>
+          `;
         })
         .join("") ||
       '<div style="color:#94a3b8; text-align:center; padding:10px;">No names yet. Add one above.</div>';
@@ -1061,6 +1304,7 @@ function refreshListGroupDropdown() {
 
 function calculateSummary() {
   // Read summary group from dropdown if exists
+
   const sel = document.getElementById("summaryGroupFilter");
   if (sel) summaryGroup = sel.value || "__all__";
 
@@ -1074,178 +1318,127 @@ function calculateSummary() {
     });
   }
 
-  // Apply group filter
+  // Apply group filter (for totals sections)
+  let dataForTotals = data;
   if (summaryGroup && summaryGroup !== "__all__") {
-    data = data.filter((x) => (x.group || "").trim() === summaryGroup);
+    dataForTotals = dataForTotals.filter(
+      (x) => (x.group || "").trim() === summaryGroup
+    );
   }
 
-  const paidTotals = {};
-  const consTotals = {};
-  const debts = {};
+  const simple = document.getElementById("toggleSimpleSettle")?.checked;
 
-  data.forEach((entry) => {
-    const price = parseFloat(entry.price);
-    const payers = (entry.paidBy || "")
-      .split(/[,&|]+/)
-      .map(cleanPersonName)
-      .filter((n) => n);
-    const consumers = (entry.consumedBy || "")
-      .split(/[,&|]+/)
-      .map(cleanPersonName)
-      .filter((n) => n);
-    if (payers.length === 0 || consumers.length === 0 || !(price > 0)) return;
+  const { paidTotals, consTotals } = computeSettlementsForData(dataForTotals);
 
-    const amountPerPayer = price / payers.length;
-    const amountPerConsumer = price / consumers.length;
-
-    payers.forEach((p) => {
-      paidTotals[p] = (paidTotals[p] || 0) + amountPerPayer;
-    });
-    consumers.forEach((c) => {
-      consTotals[c] = (consTotals[c] || 0) + amountPerConsumer;
-    });
-
-    const debtPerPayer = amountPerConsumer / payers.length;
-    consumers.forEach((c) => {
-      payers.forEach((p) => {
-        if (c !== p) {
-          if (!debts[c]) debts[c] = {};
-          debts[c][p] = (debts[c][p] || 0) + debtPerPayer;
-        }
-      });
-    });
-  });
+  const settlements = simple
+    ? computeSimplifiedSettlements(dataForTotals)
+    : computeSettlementsForData(dataForTotals).settlements;
 
   document.getElementById("paidArea").innerHTML = renderMap(paidTotals);
   document.getElementById("consumedArea").innerHTML = renderMap(consTotals);
 
-  // Simplify pairwise debts
-  const settlements = [];
-  const people = Array.from(
-    new Set([...Object.keys(paidTotals), ...Object.keys(consTotals)])
-  );
-  for (let i = 0; i < people.length; i++) {
-    for (let j = i + 1; j < people.length; j++) {
-      const p1 = people[i],
-        p2 = people[j];
-      const d1 = (debts[p1] && debts[p1][p2]) || 0;
-      const d2 = (debts[p2] && debts[p2][p1]) || 0;
-      const net = d1 - d2;
-      if (net > 0.01) settlements.push({ from: p1, to: p2, amt: net });
-      else if (net < -0.01) settlements.push({ from: p2, to: p1, amt: -net });
-    }
-  }
-  document.getElementById("settlementArea").innerHTML = (() => {
-    const ctx = _summaryContextKey();
-    const paidMap = loadSettlementPaidMap();
-    const paidForCtx = paidMap?.[ctx] || {};
+  const settlementArea = document.getElementById("settlementArea");
+  if (!settlementArea) return;
 
-    if (!settlements.length) {
-      return `
-      <div style="display:flex; gap:10px; margin-bottom:10px;">
-        <button class="btn btn-outline btn-small" type="button" id="btnMarkAllPaid">
-          <i class="fas fa-check"></i> Mark All Paid
-        </button>
-        <button class="btn btn-primary btn-small" type="button" id="btnArchiveSettled">
-          <i class="fas fa-archive"></i> Archive (Mark Settled)
-        </button>
-      </div>
-      <div style="text-align:center; color:#94a3b8;">All Settled</div>
-    `;
-    }
+  // ✅ Group-wise settlement sections when "All Groups" is selected
+  if (!summaryGroup || summaryGroup === "__all__") {
+    const groups = Array.from(
+      new Set(
+        data
+          .map((x) => (x.group || "").trim())
+          .map((g) => (g ? g : "__no_group__"))
+      )
+    ).sort((a, b) => a.localeCompare(b));
 
-    const header = `
-    <div style="display:flex; gap:10px; margin-bottom:10px;">
-      <button class="btn btn-outline btn-small" type="button" id="btnMarkAllPaid">
-        <i class="fas fa-check"></i> Mark All Paid
-      </button>
-      <button class="btn btn-primary btn-small" type="button" id="btnArchiveSettled">
-        <i class="fas fa-archive"></i> Archive (Mark Settled)
-      </button>
-    </div>
-  `;
+    const html = groups
+      .map((gkey) => {
+        const title = gkey === "__no_group__" ? "No Group" : gkey;
+        const subset = data.filter((x) => {
+          const gg = (x.group || "").trim();
+          return gkey === "__no_group__" ? !gg : gg === gkey;
+        });
 
-    const rows = settlements
-      .map((s) => {
-        const k = `${cleanPersonName(s.from)}__${cleanPersonName(s.to)}`;
-        const isPaid = !!paidForCtx[k];
+        const s2 = simple
+          ? computeSimplifiedSettlements(subset)
+          : computeSettlementsForData(subset).settlements;
 
-        return `
-      <div class="settle-item ${
-        isPaid ? "settle-paid" : ""
-      }" data-settle-key="${escapeAttr(k)}">
-        <div class="settle-left">
-          <i class="fas fa-check-circle"></i>
-          <div style="min-width:0;">
-            <div>${escapeHtml(s.from)} pays ${escapeHtml(
-          s.to
-        )} <b>${formatCurrency(s.amt)}</b></div>
-            ${
-              isPaid
-                ? `<div style="margin-top:4px;"><span class="badge-paid">Paid</span></div>`
-                : ``
-            }
-          </div>
-        </div>
-
-        <button class="btn btn-outline btn-small btn-toggle-paid" type="button">
-          ${isPaid ? "Undo" : "Paid"}
-        </button>
-      </div>
-    `;
+        const ctx = _summaryContextKeyForGroup(gkey);
+        return renderSettlementSection(title, s2, ctx, gkey);
       })
       .join("");
 
-    return header + rows;
-  })();
-  wireSettlementButtons(settlements);
+    settlementArea.innerHTML =
+      html ||
+      `<div style="text-align:center; color:#94a3b8;">No data in this range.</div>`;
+  } else {
+    const ctx = _summaryContextKey();
+    const sMain = simple
+      ? computeSimplifiedSettlements(dataForTotals)
+      : computeSettlementsForData(dataForTotals).settlements;
+
+    settlementArea.innerHTML = renderSettlementSection(
+      summaryGroup,
+      sMain,
+      ctx,
+      summaryGroup
+    );
+  }
+
+  wireSettlementButtons();
 }
 
-function wireSettlementButtons(settlements) {
+let _settlementDelegationWired = false;
+
+function wireSettlementButtons() {
+  if (_settlementDelegationWired) return;
+
   const area = document.getElementById("settlementArea");
   if (!area) return;
 
-  // Paid/Undo per line
-  area.querySelectorAll(".btn-toggle-paid").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+  area.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
 
+    // Paid/Undo per line
+    if (btn.classList.contains("btn-toggle-paid")) {
       const row = btn.closest("[data-settle-key]");
       if (!row) return;
 
       const key = row.getAttribute("data-settle-key");
+      const ctx = row.getAttribute("data-ctx") || _summaryContextKey();
       if (!key) return;
 
-      toggleSettlementPaid(key);
-      calculateSummary(); // refresh badge/button text
-    });
+      toggleSettlementPaidForCtx(ctx, key);
+      calculateSummary();
+      return;
+    }
+
+    const action = btn.getAttribute("data-action");
+    if (!action) return;
+
+    // Mark all paid (within the same group section)
+    if (action === "markAllPaid") {
+      const ctx = btn.getAttribute("data-ctx") || _summaryContextKey();
+      const wrap = btn.closest(".settlement-group") || area;
+      const keys = Array.from(wrap.querySelectorAll("[data-settle-key]"))
+        .map((el) => el.getAttribute("data-settle-key"))
+        .filter(Boolean);
+
+      markAllSettlementsPaidForCtx(ctx, keys);
+      calculateSummary();
+      return;
+    }
+
+    // Archive (Mark as Settled) per group
+    if (action === "archiveSettled") {
+      const g = btn.getAttribute("data-group") || "__all__";
+      if (g === "__all__") await markCurrentAsSettled();
+      else await markCurrentAsSettledForGroup(g);
+      return;
+    }
   });
 
-  // Mark all paid
-  const btnAll = area.querySelector("#btnMarkAllPaid");
-  if (btnAll) {
-    btnAll.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const keys = settlements.map(
-        (s) => `${cleanPersonName(s.from)}__${cleanPersonName(s.to)}`
-      );
-      markAllSettlementsPaid(keys);
-      calculateSummary();
-    });
-  }
-
-  // Archive (Mark as Settled)
-  const archBtn = area.querySelector("#btnArchiveSettled");
-  if (archBtn) {
-    archBtn.addEventListener("click", async (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      await markCurrentAsSettled(); // your function (already async with uiConfirm)
-    });
-  }
+  _settlementDelegationWired = true;
 }
 
 function pad2(n) {
@@ -1554,6 +1747,97 @@ async function markCurrentAsSettled() {
     }
   } catch (e) {
     console.warn("Auto-backup after archive failed:", e);
+  }
+
+  alert("Settled! The records were archived and removed from active data.");
+}
+
+async function markCurrentAsSettledForGroup(groupKey) {
+  // groupKey can be "__no_group__" or a real group name
+  let data = entries;
+
+  // Apply date filter (same as summary)
+  if (summaryStartDate && summaryEndDate) {
+    data = data.filter((x) => {
+      const d = new Date(x.date);
+      return d >= summaryStartDate && d <= summaryEndDate;
+    });
+  }
+
+  // Apply group filter
+  data = data.filter((x) => {
+    const gg = (x.group || "").trim();
+    return groupKey === "__no_group__" ? !gg : gg === groupKey;
+  });
+
+  if (!data.length) {
+    alert("No records for this group in the current Summary range to settle.");
+    return;
+  }
+
+  const start = summaryStartDate
+    ? new Date(summaryStartDate).toISOString()
+    : null;
+  const end = summaryEndDate ? new Date(summaryEndDate).toISOString() : null;
+
+  const total = data.reduce((s, e) => s + parseFloat(e.price || 0), 0);
+  const title = groupKey === "__no_group__" ? "No Group" : groupKey;
+
+  const ok = await uiConfirm({
+    title: "Mark as settled?",
+    sub: `Group: ${title}`,
+    message: "Do you want to archive these records and start fresh?",
+    okText: "Mark as Settled",
+    cancelText: "Cancel",
+    detailsHtml: `
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div><b>Records:</b> ${data.length}</div>
+        <div><b>Total:</b> ${formatCurrency(total)}</div>
+      </div>
+      <div style="margin-top:8px; color:#64748b; font-size:.85rem;">
+        This will archive these records and remove them from the active list.
+      </div>
+    `,
+  });
+  if (!ok) return;
+
+  const batch = {
+    id: Date.now(),
+    createdAt: new Date().toISOString(),
+    start,
+    end,
+    group: groupKey,
+    count: data.length,
+    total,
+    entries: data,
+  };
+
+  const batches = loadSettledBatches();
+  batches.unshift(batch);
+  saveSettledBatches(batches);
+
+  const idSet = new Set(data.map((x) => x.id));
+  entries = entries.filter((e) => !idSet.has(e.id));
+
+  persist();
+  refreshSummaryGroupDropdown();
+  refreshListGroupDropdown();
+  renderList();
+  calculateSummary();
+
+  await syncBackupIfConnected();
+
+  // optional: if Drive connected, auto-backup after archiving
+  try {
+    const token = gapi?.client?.getToken?.()
+      ? gapi.client.getToken().access_token
+      : null;
+    if (token) {
+      const fileId = await findLatestBackupFileId(token);
+      await uploadBackupMultipart(token, fileId);
+    }
+  } catch (e) {
+    console.warn("Auto-backup after group archive failed:", e);
   }
 
   alert("Settled! The records were archived and removed from active data.");
@@ -2566,8 +2850,7 @@ let _namePickerMode = "paid"; // 'paid' | 'consumed'
 
 function openNamePicker(mode) {
   _namePickerMode = mode;
-// Prevent keyboard from opening
-document.activeElement?.blur();
+
   // title + hints
   const title = document.getElementById("namePickerTitle");
   const hint = document.getElementById("namePickerHint");
@@ -2594,7 +2877,10 @@ document.activeElement?.blur();
   const modal = document.getElementById("modalNamePicker");
   if (modal) modal.classList.add("active");
 
- 
+  // focus new-name input for fast add
+  setTimeout(() => {
+    if (n) n.focus();
+  }, 50);
 }
 window.openNamePicker = openNamePicker;
 
@@ -2675,7 +2961,7 @@ function renderNamePickerList() {
           : `<input type="checkbox" ${isCons ? "checked" : ""} />`;
 
       return `
-  <div class="name-pick-row" data-name="${encodeURIComponent(n)}">
+  <div class="name-pick-row" data-name="${escapeAttr(n)}">
     <div class="left">
       ${inputHtml}
       <div style="min-width:0;">
@@ -2696,6 +2982,26 @@ function renderNamePickerList() {
     })
     .join("");
 }
+
+// ✅ Name Picker: tap a row to select/toggle (works on mobile)
+document.addEventListener("click", (e) => {
+  const list = document.getElementById("namePickerList");
+  if (!list) return;
+
+  // Only handle clicks inside the name picker list
+  if (!list.contains(e.target)) return;
+
+  // If delete button was clicked, ignore (delete handler already exists)
+  if (e.target.closest(".name-del-btn")) return;
+
+  const row = e.target.closest(".name-pick-row");
+  if (!row) return;
+
+  const name = row.getAttribute("data-name") || "";
+  if (!name) return;
+
+  namePickerToggle(name);
+});
 
 function namePickerToggle(name) {
   const n = cleanPersonName(name);
@@ -2719,76 +3025,9 @@ function namePickerToggle(name) {
   renderNamePickerList();
 }
 
-
-
-document.addEventListener("DOMContentLoaded", () => {
-  const list = document.getElementById("namePickerList");
-  if (!list) return;
-
-  list.addEventListener("click", async (e) => {
-    const delBtn = e.target.closest(".name-del-btn");
-    const row = e.target.closest(".name-pick-row");
-    if (!row) return;
-
-    // Prevent other global click handlers from interfering
-    e.preventDefault();
-    e.stopPropagation();
-
-    const raw = row.getAttribute("data-name") || "";
-    const name = decodeURIComponent(raw || "");
-
-    // Delete
-    if (delBtn) {
-      const { activeCount, archivedCount } = getAllNamesUsedCounts(name);
-
-      if (activeCount > 0 || archivedCount > 0) {
-        const msg =
-          `You can't delete "${cleanPersonName(name)}" because it is used.\n\n` +
-          `Active records: ${activeCount}\nArchived records: ${archivedCount}`;
-
-        if (typeof uiConfirm === "function") {
-          await uiConfirm({ title: "Can't delete", message: msg, okText: "OK" });
-        } else {
-          alert(msg);
-        }
-        return;
-      }
-
-      let ok = true;
-      if (typeof uiConfirm === "function") {
-        ok = await uiConfirm({
-          title: "Delete name?",
-          message: `Delete "${cleanPersonName(name)}" from the list?`,
-          sub: "This name is not used in any record.",
-          okText: "Delete",
-          cancelText: "Cancel",
-        });
-      } else {
-        ok = confirm(`Delete "${cleanPersonName(name)}"?`);
-      }
-
-      if (!ok) return;
-
-      removeNameFromCatalog(name);
-      renderNamePickerList();
-      renderNameDropdownLists();
-      return;
-    }
-
-    // Select name
-    namePickerToggle(name);
-  });
-});
-
-document.addEventListener("focusin", (e) => {
-  if (!e.target.closest("#modalNamePicker")) return;
-  if (e.target.matches("input[type='text'], input[type='search']") && e.target.hasAttribute("readonly")) {
-    e.target.blur();
-  }
-});
-
 Object.assign(window, {
   markCurrentAsSettled,
+  markCurrentAsSettledForGroup,
   openSettledHistoryModal,
   renderSettledHistory,
   restoreSettledBatch,
