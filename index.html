@@ -1,829 +1,1060 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>Expense Manager Pro</title>
-    <!-- Icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SplitEase</title>
+<style>
+:root{
+  --p:#5c6bc0;--pd:#3949ab;--ps:#7e57c2;
+  --ok:#43a047;--err:#e53935;--warn:#fb8c00;
+  --bg:#eef0fb;--card:#fff;--txt:#263238;--muted:#607d8b;--bdr:#dde3f5;
+  --sh:0 2px 10px rgba(60,60,140,.10);--r:13px;--nh:58px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);max-width:480px;margin:0 auto;padding-bottom:calc(var(--nh)+8px)}
+.hdr{background:linear-gradient(135deg,var(--pd),var(--ps));color:#fff;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(57,73,171,.35)}
+.hdr-title{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:7px}
+.hdr-add{background:rgba(255,255,255,.22);border:none;color:#fff;padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap}
+.hdr-add:active{background:rgba(255,255,255,.38)}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;display:flex;border-top:1px solid var(--bdr);box-shadow:0 -2px 10px rgba(0,0,0,.07);height:var(--nh);z-index:50}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--muted);border:none;background:none;font-family:inherit;padding:4px 0;transition:color .18s}
+.ni.on{color:var(--p)}
+.ni-ic{font-size:1.25rem}.ni-lb{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.content{padding:12px}
+.tab{display:none}.tab.on{display:block}
+.addBtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;border:none;border-radius:var(--r);font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:12px;box-shadow:0 3px 12px rgba(92,107,192,.40);font-family:inherit}
+.addBtn:active{opacity:.88;transform:scale(.98)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.cH{padding:11px 13px;background:linear-gradient(90deg,rgba(92,107,192,.08),rgba(126,87,194,.05));border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cH h3{font-size:.88rem;font-weight:800;color:var(--pd);display:flex;align-items:center;gap:5px;min-width:0;flex:1}
+.cH h3 em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cBody{padding:0 13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.stat{background:#fff;border-radius:11px;padding:10px 6px;text-align:center;box-shadow:var(--sh)}
+.sv{font-size:.98rem;font-weight:800;color:var(--p)}.sl{font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:5px;margin-bottom:8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:20px;font-size:.73rem;font-weight:700;white-space:nowrap;cursor:pointer;border:2px solid var(--bdr);background:#fff;color:var(--muted);transition:all .15s;flex-shrink:0}
+.chip.on{background:var(--p);border-color:var(--p);color:#fff}
+.eItem{padding:10px 0;border-bottom:1px solid var(--bdr);display:flex;gap:10px;align-items:flex-start}
+.eItem:last-child{border-bottom:none}
+.eIco{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--p),var(--ps));display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;margin-top:2px}
+.eInfo{flex:1;min-width:0}
+.eDesc{font-weight:700;font-size:.87rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eMeta{font-size:.7rem;color:var(--muted);margin-top:2px}
+.eTags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.tag{font-size:.63rem;padding:2px 7px;border-radius:20px;font-weight:700}
+.tP{background:rgba(67,160,71,.12);color:#2e7d32}.tG{background:rgba(251,140,0,.12);color:#e65100}.tS{background:rgba(92,107,192,.12);color:var(--pd)}
+.eRight{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.eAmt{font-size:.93rem;font-weight:800}.rBtns{display:flex;gap:4px}
+.btn{padding:7px 13px;border-radius:8px;border:none;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.btn:active{transform:scale(.94)}
+.bP{background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;box-shadow:0 2px 8px rgba(92,107,192,.3)}
+.bOk{background:var(--ok);color:#fff}.bDng{background:var(--err);color:#fff}
+.bOut{background:transparent;color:var(--p);border:2px solid var(--p)}
+.bGh{background:transparent;color:var(--muted);border:none}
+.bSm{padding:4px 9px;font-size:.7rem;border-radius:6px}.bFull{width:100%;justify-content:center}
+.bIco{background:rgba(92,107,192,.1);color:var(--p);padding:5px 8px;border-radius:7px;border:none;font-size:.78rem;cursor:pointer}
+.bIcoR{background:rgba(229,57,53,.1);color:var(--err);padding:5px 8px;border-radius:7px;border:none;font-size:.78rem;cursor:pointer}
+.pillBox{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:2px solid var(--bdr);border-radius:10px;min-height:42px}
+.pill{padding:5px 12px;border-radius:20px;font-size:.78rem;font-weight:700;cursor:pointer;border:2px solid var(--bdr);background:#fff;color:var(--muted);user-select:none}
+.pill.on{background:var(--p);border-color:var(--p);color:#fff}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.46);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.ov.show{display:flex}
+.modal{background:#fff;border-radius:22px 22px 0 0;padding:16px 15px 28px;width:100%;max-width:480px;max-height:93vh;overflow-y:auto;animation:su .27s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mHandle{width:34px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 12px}
+.mTitle{font-size:1rem;font-weight:800;margin-bottom:13px}
+.mBtns{display:flex;gap:8px;margin-top:10px}
+.dOv{position:fixed;inset:0;background:rgba(0,0,0,.46);z-index:300;display:none;align-items:center;justify-content:center;padding:18px}
+.dOv.show{display:flex}
+.dlg{background:#fff;border-radius:15px;padding:20px;width:100%;max-width:320px}
+.dT{font-size:.95rem;font-weight:800;margin-bottom:5px}.dM{font-size:.81rem;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.dA{display:flex;gap:8px;justify-content:flex-end}
+.fG{margin-bottom:11px}.fL{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.fI{width:100%;padding:10px 12px;border:2px solid var(--bdr);border-radius:10px;font-family:inherit;font-size:.9rem;color:var(--txt);transition:border-color .2s;background:#fff}
+.fI:focus{outline:none;border-color:var(--p)}
+.fI[type=number]{-moz-appearance:textfield}
+.fI[type=number]::-webkit-outer-spin-button,.fI[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+textarea.fI{resize:none;line-height:1.5}
+.fRow{display:flex;gap:8px}.fRow .fG{flex:1}
+.amtWrap{position:relative}.amtPfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-weight:800;color:var(--muted);pointer-events:none}
+.amtWrap .fI{padding-left:25px}
+.alert{padding:9px 12px;border-radius:9px;font-size:.78rem;margin-bottom:11px;line-height:1.5;font-weight:500}
+.aI{background:rgba(92,107,192,.09);color:var(--pd);border-left:3px solid var(--p)}
+.aW{background:rgba(251,140,0,.09);color:#bf360c;border-left:3px solid var(--warn)}
+.aOk{background:rgba(67,160,71,.09);color:#1b5e20;border-left:3px solid var(--ok)}
+.aErr{background:rgba(229,57,53,.09);color:#b71c1c;border-left:3px solid var(--err)}
+.sItem{padding:10px 0;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.sItem:last-child{border-bottom:none}.sItem.done{opacity:.5}
+.sInfo{flex:1;min-width:0}.sNames{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.sFrom{font-weight:800;color:var(--err);font-size:.86rem}.sArr{color:var(--muted);font-size:.76rem}.sTo{font-weight:800;color:var(--ok);font-size:.86rem}
+.sAmt{font-size:.9rem;font-weight:800;margin-top:3px;display:flex;align-items:center;gap:6px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;background:rgba(67,160,71,.12);color:#2e7d32;border-radius:20px;font-size:.67rem;font-weight:700}
+.balRow{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)}
+.gItem{padding:11px 12px;border:2px solid var(--bdr);border-radius:11px;margin-bottom:9px}
+.gTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gName{font-weight:800;font-size:.9rem;flex:1}
+.gMems{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.mem{padding:3px 9px;background:var(--bg);border-radius:20px;font-size:.71rem;font-weight:600;color:var(--muted)}
+.aItem{padding:11px 0;border-bottom:1px solid var(--bdr);display:flex;gap:10px;align-items:center}
+.aItem:last-child{border-bottom:none}
+.aIco{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#ff9800,#f57c00);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.mRow{display:flex;align-items:center;gap:11px;padding:12px 13px;cursor:pointer;transition:background .15s}
+.mRow:active{background:var(--bg)}
+.mIco{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+.mRowI{flex:1}.mRowT{font-weight:700;font-size:.86rem}.mRowD{font-size:.71rem;color:var(--muted);margin-top:2px}
+.mCh{color:var(--muted)}.divL{height:1px;background:var(--bdr);margin:0 13px}
+.empty{text-align:center;padding:32px 16px;color:var(--muted)}
+.emIc{font-size:2.6rem;margin-bottom:9px}.emT{font-weight:800;font-size:.93rem;margin-bottom:4px;color:var(--txt)}.emD{font-size:.8rem;line-height:1.5}
+.toast{position:fixed;bottom:calc(var(--nh)+10px);left:50%;transform:translateX(-50%) translateY(10px);background:#263238;color:#fff;padding:9px 18px;border-radius:24px;font-size:.8rem;font-weight:600;opacity:0;transition:all .25s;z-index:400;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.nw{white-space:nowrap}
+.syncDot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.syncDot.green{background:#43a047}.syncDot.orange{background:#fb8c00}.syncDot.red{background:#e53935}.syncDot.grey{background:#90a4ae}
+.fileBar{display:flex;align-items:center;gap:8px;padding:10px 13px;background:rgba(92,107,192,.06);border-bottom:1px solid var(--bdr);font-size:.78rem;font-weight:600}
+.fileBarInfo{flex:1;color:var(--muted)}
+.fileBarInfo b{color:var(--txt)}
+.reconnectBtn{padding:4px 10px;border-radius:6px;border:none;background:var(--p);color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+/* Custom currency section */
+.curCustom{padding:12px 13px;border-top:1px solid var(--bdr);background:rgba(92,107,192,.04)}
+.curCustom .fRow{margin-bottom:8px}
+</style>
+</head>
+<body>
 
-    <!-- Google Identity Services (Async Load) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-    <link rel="stylesheet" href="style.css?v=1" />
-    <link rel="icon" href="favicon.ico" />
-  </head>
-  <body>
-    <!-- LIST VIEW -->
-    <div id="viewList" class="view-section active">
-      <header>
-        <div class="header-top">
-          <div class="app-title">Expense Manager</div>
-          <div class="total-badge" id="headerTotal">SR 0.00</div>
-        </div>
+<header class="hdr">
+  <div class="hdr-title">💸 SplitEase</div>
+  <button class="hdr-add" id="hdrAddBtn" onclick="onHdrAdd()">＋ Add</button>
+</header>
 
-        <!-- Period Tabs (Daily / Monthly / Yearly) -->
-        <div class="period-tabs" role="tablist" aria-label="Records period">
-          <button
-            class="period-tab active"
-            type="button"
-            data-period="daily"
-            onclick="setListPeriod('daily')"
-          >
-            Daily
-          </button>
-          <button
-            class="period-tab"
-            type="button"
-            data-period="monthly"
-            onclick="setListPeriod('monthly')"
-          >
-            Monthly
-          </button>
-          <button
-            class="period-tab"
-            type="button"
-            data-period="yearly"
-            onclick="setListPeriod('yearly')"
-          >
-            Yearly
-          </button>
-        </div>
+<div class="content">
 
-        <!-- Date Navigator -->
-        <div class="date-strip" aria-label="Date navigation">
-          <button
-            class="date-nav-btn"
-            type="button"
-            onclick="shiftListDate(-1)"
-            aria-label="Previous"
-          >
-            <i class="fas fa-chevron-left"></i>
-          </button>
-
-          <div
-            class="date-pill"
-            role="button"
-            tabindex="0"
-            onclick="openListDatePicker()"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openListDatePicker();}"
-          >
-            <div class="date-day" id="listDayNumber">--</div>
-            <div class="date-meta">
-              <div class="date-month" id="listMonthYear">--</div>
-              <div class="date-weekday" id="listWeekday">--</div>
-            </div>
-          </div>
-
-          <div class="date-balance">
-            <div class="bal-label">Balance</div>
-            <div class="bal-value" id="listBalance">SR 0.00</div>
-          </div>
-
-          <button
-            class="date-nav-btn"
-            type="button"
-            onclick="shiftListDate(1)"
-            aria-label="Next"
-          >
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <!-- Hidden native date picker (Daily) -->
-        <input
-          type="date"
-          id="listDatePicker"
-          class="hidden"
-          onchange="onListDatePicked(this.value)"
-        />
-
-        <div class="search-container">
-          <div class="Selector">
-            <select
-              id="listGroupFilter"
-              class="search-select"
-              style="max-width: 140px"
-              onchange="renderList()"
-            >
-              <option value="__all__">All Groups</option>
-            </select>
-            <select
-              id="searchType"
-              class="search-select"
-              onchange="renderList()"
-            >
-              <option value="all">All</option>
-              <option value="item">Item</option>
-              <option value="paid">Paid By</option>
-              <option value="consumed">Consumed</option>
-              <option value="group">Group</option>
-              <option value="price">SAR</option>
-            </select>
-          </div>
-          <div class="search-wrap">
-            <i class="fas fa-search search-icon"></i>
-            <input
-              type="text"
-              id="searchInput"
-              class="search-input"
-              placeholder="Search..."
-              onkeyup="renderList()"
-            />
-          </div>
-        </div>
-      </header>
-      <div id="listContainer" style="margin-top: 15px"></div>
+  <!-- EXPENSES TAB -->
+  <div class="tab on" id="tab-exp">
+    <div class="stats">
+      <div class="stat"><div class="sv" id="sTotal">₹0</div><div class="sl">Total</div></div>
+      <div class="stat"><div class="sv" id="sCount">0</div><div class="sl">Entries</div></div>
+      <div class="stat"><div class="sv" id="sGrps">0</div><div class="sl">Groups</div></div>
     </div>
+    <button class="addBtn" onclick="openExpModal()">＋ Add New Expense</button>
+    <div class="chips" id="filterChips"></div>
+    <div id="expList"></div>
+  </div>
 
-    <!-- SUMMARY VIEW -->
-    <div id="viewSummary" class="view-section">
-      <h2 style="margin: 0 0 15px 0">Analysis</h2>
+  <!-- GROUPS TAB -->
+  <div class="tab" id="tab-grp">
+    <button class="addBtn" onclick="openGrpModal()">＋ Create New Group</button>
+    <div id="grpList"></div>
+  </div>
 
-      <div class="section-box">
-        <div class="label">Time Period</div>
-        <div id="currentRangeDisplay" class="current-range">All Time</div>
+  <!-- SUMMARY TAB -->
+  <div class="tab" id="tab-sum">
+    <div id="sumContent"></div>
+  </div>
 
-        <div class="label" style="margin-top: 10px">Group</div>
-        <select
-          id="summaryGroupFilter"
-          class="search-select"
-          style="max-width: 100%; width: 100%"
-          onchange="calculateSummary()"
-        >
-          <option value="__all__">All Groups</option>
-        </select>
-        <button class="btn btn-primary" onclick="openDateModal()">
-          Select Date Range
-        </button>
-        <button class="btn btn-outline" onclick="resetDates()">
-          Show All Time
-        </button>
+  <!-- MORE TAB -->
+  <div class="tab" id="tab-more">
+
+    <!-- DATABASE / STORAGE CARD -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="cH"><h3>💾 <em>Database Storage</em></h3></div>
+      <!-- file status bar -->
+      <div id="fileBar" class="fileBar" style="display:none">
+        <span class="syncDot grey" id="syncDot"></span>
+        <div class="fileBarInfo" id="fileBarText">No file connected</div>
+        <button class="reconnectBtn" id="reconnectBtn" onclick="reconnectFile()" style="display:none">Reconnect</button>
       </div>
-
-      <div class="section-box">
-        <div class="row" style="justify-content: flex-end; margin-bottom: 8px">
-          <label class="toggle">
-            <input
-              type="checkbox"
-              id="toggleSimpleSettle"
-              onchange="calculateSummary()"
-            />
-            <span>Simple Settlements</span>
-          </label>
-        </div>
-        <div class="box-header">
-          <span>Settlement</span>
-          <i class="fas fa-handshake" style="color: var(--success)"></i>
-        </div>
-        <div id="settlementArea"></div>
+      <div id="fileBarNoFS" class="fileBar" style="display:none;background:rgba(251,140,0,.07)">
+        <span style="font-size:.75rem;color:#e65100">⚠️ Live file sync not supported in this browser. Use Export/Import JSON below.</span>
       </div>
-
-      <div class="section-box">
-        <div class="box-header">Who Paid</div>
-        <div id="paidArea"></div>
+      <!-- actions -->
+      <div class="mRow" id="btnLinkFile" onclick="linkNewFile()">
+        <div class="mIco" style="background:rgba(67,160,71,.12)">📄</div>
+        <div class="mRowI"><div class="mRowT">Create / Link DB File</div><div class="mRowD">Pick a .json file — app auto-saves to it</div></div>
+        <div class="mCh">›</div>
       </div>
-
-      <div class="section-box">
-        <div class="box-header">Who Consumed</div>
-        <div id="consumedArea"></div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="openExistingFile()">
+        <div class="mIco" style="background:rgba(92,107,192,.12)">📂</div>
+        <div class="mRowI"><div class="mRowT">Open Existing DB File</div><div class="mRowD">Load data from a saved .json file</div></div>
+        <div class="mCh">›</div>
       </div>
-    </div>
-
-    <!-- SETTINGS / SYNC VIEW -->
-    <div id="viewSettings" class="view-section">
-      <h2 style="margin: 0 0 15px 0">Data & Sync</h2>
-
-      <!-- Google Drive Section -->
-      <div class="section-box">
-        <div class="box-header">
-          <span>Google Drive Backup</span>
-          <i class="fab fa-google-drive" style="color: #4285f4"></i>
-        </div>
-
-        <div id="syncStatus" class="sync-status">
-          <i class="fas fa-circle-notch fa-spin"></i> Initializing...
-        </div>
-
-        <div id="driveControls" class="hidden">
-          <button class="btn btn-google" onclick="handleAuthClick()">
-            <i class="fab fa-google"></i> Connect Google Account
-          </button>
-        </div>
-
-        <div id="driveActions" class="hidden">
-          <button
-            class="btn btn-primary"
-            id="btnBackupDrive"
-            onclick="backupToDrive()"
-          >
-            <i class="fas fa-cloud-upload-alt"></i>
-            <span class="btn-label">Backup to Drive</span
-            ><span class="btn-spinner hidden"
-              ><i class="fas fa-circle-notch fa-spin"></i
-            ></span>
-          </button>
-          <button
-            class="btn btn-outline"
-            id="btnRestoreDrive"
-            onclick="restoreFromDrive()"
-          >
-            <i class="fas fa-cloud-download-alt"></i>
-            <span class="btn-label">Restore from Drive</span
-            ><span class="btn-spinner hidden"
-              ><i class="fas fa-circle-notch fa-spin"></i
-            ></span>
-          </button>
-          <div
-            style="
-              margin-top: 10px;
-              font-size: 0.8rem;
-              color: #64748b;
-              text-align: center;
-            "
-          >
-            File: expense_manager_backup.json
-          </div>
-        </div>
-
-        <!-- Local Data Section -->
-        <div class="section-box">
-          <div class="box-header">Local Data</div>
-
-          <input
-            type="file"
-            id="importFile"
-            accept=".csv"
-            class="hidden"
-            onchange="handleFileSelect(this)"
-          />
-
-          <!-- <button
-          class="btn btn-outline"
-          onclick="document.getElementById('importFile').click()"
-        >
-          <i class="fas fa-file-import"></i> Import CSV
-        </button> -->
-
-          <button class="btn btn-outline" onclick="openExportModal()">
-            <i class="fas fa-file-excel"></i> Export Excel (xls)
-          </button>
-          <div
-            class="label"
-            style="margin-top: 10px; font-weight: 400; text-align: center"
-          >
-            Supports Import/Export for Excel/Sheets
-          </div>
-        </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="exportJSON()">
+        <div class="mIco" style="background:rgba(251,140,0,.12)">📦</div>
+        <div class="mRowI"><div class="mRowT">Export JSON Backup</div><div class="mRowD">Download complete database as .json</div></div>
+        <div class="mCh">›</div>
       </div>
-
-      <!-- Templates Section -->
-      <div class="section-box">
-        <div class="box-header">Templates</div>
-        <button class="btn btn-outline" onclick="openTemplatesModal()">
-          <i class="fas fa-layer-group"></i> Manage Templates
-        </button>
-        <div
-          class="label"
-          style="margin-top: 10px; font-weight: 400; text-align: center"
-        >
-          Save frequent entries as templates for quick adding.
-        </div>
-      </div>
-
-      <!-- Settled History Section -->
-      <div class="section-box">
-        <div class="box-header">Settled History</div>
-        <button class="btn btn-outline" onclick="openSettledHistoryModal()">
-          <i class="fas fa-archive"></i> View Settled Batches
-        </button>
-        <div
-          class="label"
-          style="margin-top: 10px; font-weight: 400; text-align: center"
-        >
-          Restore or delete previously settled batches.
-        </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="document.getElementById('jsonFileInput').click()">
+        <div class="mIco" style="background:rgba(126,87,194,.12)">📥</div>
+        <div class="mRowI"><div class="mRowT">Import from JSON</div><div class="mRowD">Restore database from a .json backup</div></div>
+        <div class="mCh">›</div>
       </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT -->
-    <div class="modal-overlay" id="modalEntry">
-      <div class="modal">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-          "
-        >
-          <h3 id="modalTitle" style="margin: 0">Expense</h3>
-          <i
-            class="fas fa-times"
-            onclick="closeModal('modalEntry')"
-            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
-          ></i>
-        </div>
+    <!-- DATA MANAGEMENT CARD -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="cH"><h3>📊 <em>Data Management</em></h3></div>
+      <div class="mRow" onclick="exportCSV()">
+        <div class="mIco" style="background:rgba(67,160,71,.12)">📥</div>
+        <div class="mRowI"><div class="mRowT">Export to Excel (CSV)</div><div class="mRowD">Download all expenses as spreadsheet</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="openArchiveDlg()">
+        <div class="mIco" style="background:rgba(251,140,0,.12)">📦</div>
+        <div class="mRowI"><div class="mRowT">Archive & Fresh Start</div><div class="mRowD">Save current data, clear expenses</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="openArchiveList()">
+        <div class="mIco" style="background:rgba(92,107,192,.12)">📤</div>
+        <div class="mRowI"><div class="mRowT">View Archives</div><div class="mRowD">Browse & restore archived data</div></div>
+        <div class="mCh">›</div>
+      </div>
+    </div>
 
-        <input type="hidden" id="entryId" />
-        <div class="form-group">
-          <label class="label">Date</label>
-          <input type="datetime-local" id="inpDate" class="input" />
-        </div>
-        <div class="form-group">
-          <label class="label" for="inpItem">Item</label>
-          <input
-            type="text"
-            id="inpItem"
-            class="input"
-            placeholder="e.g. Dinner"
-          />
-        </div>
-        <div class="form-group">
-          <label class="label" for="inpPrice">Price (SR)</label>
-          <input
-            type="number"
-            id="inpPrice"
-            class="input"
-            placeholder="0.00"
-            step="0.01"
-          />
-        </div>
+    <!-- SETTINGS CARD -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="cH"><h3>⚙️ <em>Settings</em></h3></div>
+      <div class="mRow" onclick="openCurrency()">
+        <div class="mIco" style="background:rgba(126,87,194,.12)">💱</div>
+        <div class="mRowI"><div class="mRowT">Currency</div><div class="mRowD" id="curLbl">₹ Indian Rupee</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="confirmClearAll()">
+        <div class="mIco" style="background:rgba(229,57,53,.1)">🗑️</div>
+        <div class="mRowI"><div class="mRowT" style="color:var(--err)">Clear All Data</div><div class="mRowD">Delete all records permanently</div></div>
+        <div class="mCh">›</div>
+      </div>
+    </div>
 
-        <div class="form-group">
-          <label class="label" for="inpGroup">Group</label>
-          <input
-            type="text"
-            id="inpGroup"
-            class="input"
-            list="groupsList"
-            placeholder="e.g. Roommate, Office, Trip"
-          />
+    <div class="card">
+      <div class="cH"><h3>ℹ️ <em>About</em></h3></div>
+      <div style="padding:13px;font-size:.81rem;color:var(--muted);line-height:1.7">
+        <b style="color:var(--txt)">SplitEase v2.0</b> — Group expense tracker.<br>
+        💾 <b>Storage:</b> Browser local storage (always on) + optional live JSON file sync.<br>
+        📱 <b>Install:</b> Chrome → Menu → "Add to Home Screen".
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="ni on" id="nav-exp" onclick="goTab('exp')"><span class="ni-ic">📝</span><span class="ni-lb">Expenses</span></button>
+  <button class="ni" id="nav-grp" onclick="goTab('grp')"><span class="ni-ic">👥</span><span class="ni-lb">Groups</span></button>
+  <button class="ni" id="nav-sum" onclick="goTab('sum')"><span class="ni-ic">📊</span><span class="ni-lb">Summary</span></button>
+  <button class="ni" id="nav-more" onclick="goTab('more')"><span class="ni-ic">⚙️</span><span class="ni-lb">More</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- hidden inputs -->
+<input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJSONImport(event)">
+
+<!-- ===== MODALS ===== -->
+
+<!-- Expense Modal -->
+<div class="ov" id="mExp">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle" id="mExpT">➕ Add Expense</div>
+    <input type="hidden" id="mExpId">
+    <div class="fG"><label class="fL">Group *</label>
+      <select class="fI" id="eGrp" onchange="onGrpChange()"><option value="">— Select group —</option></select>
+    </div>
+    <div class="fG"><label class="fL">Description *</label>
+      <input type="text" class="fI" id="eDesc" placeholder="e.g. Lunch, Movie, Groceries" autocomplete="off">
+    </div>
+    <div class="fRow">
+      <div class="fG"><label class="fL">Amount *</label>
+        <div class="amtWrap"><span class="amtPfx" id="ePfx">₹</span>
+          <input type="number" class="fI" id="eAmt" placeholder="0.00" min="0" step="0.01">
         </div>
-        <div style="display: flex; gap: 10px">
-          <div class="form-group" style="flex: 1">
-            <label class="label">Paid By</label>
+      </div>
+      <div class="fG"><label class="fL">Date</label>
+        <input type="date" class="fI" id="eDate">
+      </div>
+    </div>
+    <div class="fG"><label class="fL">Paid By *</label>
+      <select class="fI" id="ePaid"><option value="">Select group first…</option></select>
+    </div>
+    <div class="fG"><label class="fL">Consumed By * <span style="text-transform:none;font-weight:500;font-size:.68rem">(tap to toggle)</span></label>
+      <div class="pillBox" id="ePills"><span style="font-size:.76rem;color:var(--muted);padding:2px">Select group first…</span></div>
+    </div>
+    <div class="fG"><label class="fL">Notes (optional)</label>
+      <input type="text" class="fI" id="eNotes" placeholder="Extra details…" autocomplete="off">
+    </div>
+    <div class="mBtns">
+      <button class="btn bOut" style="flex:.35" onclick="closeM('mExp')">Cancel</button>
+      <button class="btn bP" style="flex:.65" onclick="saveExp()">💾 Save Expense</button>
+    </div>
+  </div>
+</div>
 
-            <!-- Hidden value used by the app -->
-            <input type="hidden" id="inpPaid" />
+<!-- Group Modal -->
+<div class="ov" id="mGrp">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle" id="mGrpT">👥 Create Group</div>
+    <input type="hidden" id="mGrpId">
+    <div class="fG"><label class="fL">Group Name *</label>
+      <input type="text" class="fI" id="gName" placeholder="e.g. Office Friends, Roommates">
+    </div>
+    <div class="fG"><label class="fL">Members * — one name per line</label>
+      <textarea class="fI" id="gMems" rows="5" placeholder="Alice&#10;Bob&#10;Charlie&#10;You"></textarea>
+    </div>
+    <div class="alert aI">💡 Include your own name in the list!</div>
+    <div class="mBtns">
+      <button class="btn bOut" style="flex:.35" onclick="closeM('mGrp')">Cancel</button>
+      <button class="btn bP" style="flex:.65" onclick="saveGrp()">💾 Save Group</button>
+    </div>
+  </div>
+</div>
 
-            <div class="name-dropdown" id="paidDropdown">
-              <button
-                type="button"
-                class="name-drop-btn"
-                onclick="openNamePicker('paid')"
-              >
-                <span id="paidDisplay" class="name-drop-text"
-                  >Select / Add</span
-                >
-                <i class="fas fa-chevron-down"></i>
-              </button>
-              <div class="name-drop-panel hidden" id="paidPanel">
-                <div class="name-drop-add">
-                  <input
-                    type="text"
-                    id="paidNewName"
-                    class="input"
-                    placeholder="Add new name"
-                  />
-                  <button
-                    class="btn btn-primary"
-                    style="padding: 10px 12px; min-width: auto"
-                    onclick="addNameFromInput('paid')"
-                  >
-                    <i class="fas fa-plus"></i>
-                  </button>
-                </div>
-                <div class="name-drop-list" id="paidList"></div>
-              </div>
-            </div>
+<!-- Archive Modal -->
+<div class="ov" id="mArch">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">📦 Archive & Fresh Start</div>
+    <div class="alert aW">⚠️ Expenses will be archived and cleared. Groups are kept.</div>
+    <div class="fG"><label class="fL">Archive Label</label>
+      <input type="text" class="fI" id="archLabel" placeholder="e.g. Jan 2025, Q1 Settlement">
+    </div>
+    <div class="mBtns">
+      <button class="btn bOut" style="flex:.35" onclick="closeM('mArch')">Cancel</button>
+      <button class="btn bP" style="flex:.65" onclick="doArchive()">📦 Archive Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive List Modal -->
+<div class="ov" id="mArchList">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">📤 Archives</div>
+    <div id="archListBody"></div>
+    <button class="btn bOut bFull" onclick="closeM('mArchList')" style="margin-top:10px">Close</button>
+  </div>
+</div>
+
+<!-- Currency Modal -->
+<div class="ov" id="mCur">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">💱 Select Currency</div>
+    <div id="curBody"></div>
+    <!-- Custom Currency Section -->
+    <div class="curCustom">
+      <div style="font-size:.75rem;font-weight:800;color:var(--pd);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">➕ Add Custom Currency</div>
+      <div class="fRow">
+        <div class="fG" style="flex:.35;margin-bottom:0">
+          <label class="fL">Symbol</label>
+          <input type="text" class="fI" id="custSym" placeholder="e.g. ₪" maxlength="6" style="text-align:center;font-size:1rem;font-weight:800">
+        </div>
+        <div class="fG" style="flex:.65;margin-bottom:0">
+          <label class="fL">Currency Name</label>
+          <input type="text" class="fI" id="custName" placeholder="e.g. Israeli Shekel">
+        </div>
+      </div>
+      <button class="btn bP bFull" onclick="addCustomCurrency()" style="margin-top:8px">Set as Active Currency</button>
+    </div>
+    <button class="btn bOut bFull" onclick="closeM('mCur')" style="margin-top:10px">Cancel</button>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="dOv" id="dlg">
+  <div class="dlg">
+    <div class="dT" id="dlgT">Confirm</div>
+    <div class="dM" id="dlgM"></div>
+    <div class="dA">
+      <button class="btn bGh bSm" onclick="closeDlg()">Cancel</button>
+      <button class="btn bSm" id="dlgOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA MODEL
+// ═══════════════════════════════════════════════════
+let db = {
+  groups:[], expenses:[], settled:[], archives:[],
+  currency:'₹', curName:'Indian Rupee',
+  customCurrencies:[]   // [{s, n}]
+};
+
+const BASE_CURRENCIES = [
+  {s:'₹',n:'Indian Rupee'},{s:'﷼',n:'Saudi Riyal'},{s:'$',n:'US Dollar'},
+  {s:'€',n:'Euro'},{s:'£',n:'British Pound'},{s:'¥',n:'Japanese Yen'},
+  {s:'₩',n:'Korean Won'},{s:'A$',n:'Australian Dollar'},{s:'C$',n:'Canadian Dollar'},
+  {s:'CHF',n:'Swiss Franc'},{s:'AED',n:'UAE Dirham'},{s:'د.إ',n:'UAE Dirham (Alt)'},
+  {s:'SGD',n:'Singapore Dollar'},{s:'฿',n:'Thai Baht'},{s:'₱',n:'Philippine Peso'},
+  {s:'Rp',n:'Indonesian Rupiah'},{s:'¥',n:'Chinese Yuan'},{s:'kr',n:'Swedish Krona'},
+];
+
+let curTab='exp', grpFilter='all', dlgCb=null;
+const AC={};   // action map
+
+// ═══════════════════════════════════════════════════
+//  STORAGE — localStorage (primary)
+// ═══════════════════════════════════════════════════
+function save() {
+  try { localStorage.setItem('se4', JSON.stringify(db)); } catch(e) {}
+  syncFile(); // async file sync (no-op if no file linked)
+}
+
+function loadFromLS() {
+  try {
+    const r = localStorage.getItem('se4');
+    if (r) applyData(JSON.parse(r));
+  } catch(e) {}
+}
+
+function applyData(d) {
+  db.groups           = d.groups           || [];
+  db.expenses         = d.expenses         || [];
+  db.settled          = d.settled          || [];
+  db.archives         = d.archives         || [];
+  db.currency         = d.currency         || '₹';
+  db.curName          = d.curName          || 'Indian Rupee';
+  db.customCurrencies = d.customCurrencies || [];
+}
+
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function ra(data){ const id='r'+uid(); AC[id]=data; return id; }
+
+// ═══════════════════════════════════════════════════
+//  FILE SYSTEM ACCESS API  (live JSON file sync)
+// ═══════════════════════════════════════════════════
+let fsHandle = null;
+const fsOK   = typeof window.showSaveFilePicker === 'function';
+let   syncStatus = 'none'; // 'none' | 'synced' | 'needs-perm' | 'error'
+
+/* IndexedDB helpers to persist the FileSystemFileHandle across reloads */
+function idb(mode, val) {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open('SplitEase_FS', 1);
+    rq.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+    rq.onsuccess = e => {
+      const idb2 = e.target.result;
+      try {
+        const tx = idb2.transaction('kv', mode);
+        const st = tx.objectStore('kv');
+        const op = val !== undefined ? st.put(val, 'fh') : st.get('fh');
+        op.onsuccess = () => res(op.result);
+        op.onerror   = () => rej(op.error);
+      } catch(err){ rej(err); }
+    };
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+async function syncFile() {
+  if (!fsHandle) return;
+  try {
+    const perm = await fsHandle.queryPermission({ mode:'readwrite' });
+    if (perm !== 'granted') { setSyncStatus('needs-perm'); return; }
+    const w = await fsHandle.createWritable();
+    await w.write(JSON.stringify(db, null, 2));
+    await w.close();
+    setSyncStatus('synced');
+  } catch(e) {
+    console.warn('File sync error:', e);
+    setSyncStatus('error');
+  }
+}
+
+async function linkNewFile() {
+  if (!fsOK) { toast('⚠️ Use Export JSON instead (browser limitation)'); return; }
+  try {
+    fsHandle = await window.showSaveFilePicker({
+      suggestedName: 'splitease_db.json',
+      types: [{ description:'SplitEase Database', accept:{'application/json':['.json']} }]
+    });
+    await idb('readwrite', fsHandle);
+    await syncFile();
+    updateFileBar();
+    toast('✅ Database file linked — auto-syncing!');
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('❌ '+e.message);
+  }
+}
+
+async function openExistingFile() {
+  if (!fsOK) {
+    // fallback: open JSON import
+    document.getElementById('jsonFileInput').click();
+    return;
+  }
+  try {
+    [fsHandle] = await window.showOpenFilePicker({
+      types: [{ description:'SplitEase Database', accept:{'application/json':['.json']} }]
+    });
+    const perm = await fsHandle.requestPermission({ mode:'readwrite' });
+    if (perm !== 'granted') { toast('❌ Permission denied'); return; }
+    await idb('readwrite', fsHandle);
+    const file = await fsHandle.getFile();
+    const text = await file.text();
+    applyData(JSON.parse(text));
+    save();
+    refreshAll();
+    updateFileBar();
+    toast('✅ Data loaded from file!');
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('❌ '+e.message);
+  }
+}
+
+async function reconnectFile() {
+  if (!fsHandle) return;
+  try {
+    const perm = await fsHandle.requestPermission({ mode:'readwrite' });
+    if (perm === 'granted') {
+      await syncFile();
+      updateFileBar();
+      toast('✅ Reconnected!');
+    } else { toast('❌ Permission denied'); }
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+async function tryRestoreHandle() {
+  if (!fsOK) { document.getElementById('fileBarNoFS').style.display='flex'; return; }
+  try {
+    const h = await idb('readonly');
+    if (h) {
+      fsHandle = h;
+      const perm = await fsHandle.queryPermission({ mode:'readwrite' });
+      setSyncStatus(perm === 'granted' ? 'synced' : 'needs-perm');
+    }
+  } catch(e) {}
+  updateFileBar();
+}
+
+function setSyncStatus(s) {
+  syncStatus = s;
+  updateFileBar();
+}
+
+function updateFileBar() {
+  const bar  = document.getElementById('fileBar');
+  const dot  = document.getElementById('syncDot');
+  const txt  = document.getElementById('fileBarText');
+  const rbtn = document.getElementById('reconnectBtn');
+  if (!fsOK) return;
+  bar.style.display = 'flex';
+  if (!fsHandle) {
+    dot.className='syncDot grey'; txt.innerHTML='<b>No file linked.</b> Connect a JSON file for permanent storage.'; rbtn.style.display='none';
+  } else if (syncStatus==='synced') {
+    dot.className='syncDot green'; txt.innerHTML='<b>'+h(fsHandle.name)+'</b> — Auto-syncing ✓'; rbtn.style.display='none';
+  } else if (syncStatus==='needs-perm') {
+    dot.className='syncDot orange'; txt.innerHTML='<b>'+h(fsHandle.name)+'</b> — Tap to reconnect'; rbtn.style.display='flex';
+  } else {
+    dot.className='syncDot red'; txt.innerHTML='Sync error — check file access'; rbtn.style.display='flex';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  JSON EXPORT / IMPORT (always available backup)
+// ═══════════════════════════════════════════════════
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`splitease_db_${today()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📦 JSON exported!');
+}
+
+function handleJSONImport(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      confirm2('Import JSON', `Import "${file.name}"? This will replace current data.`, () => {
+        applyData(data);
+        save();
+        refreshAll();
+        toast('✅ Data imported!');
+      }, false);
+    } catch(err) { toast('❌ Invalid JSON file'); }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+function goTab(t) {
+  curTab = t;
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('nav-'+t).classList.add('on');
+  const hb = document.getElementById('hdrAddBtn');
+  if (t==='exp')  { hb.style.display='flex'; hb.onclick=openExpModal; hb.textContent='＋ Add'; }
+  else if (t==='grp') { hb.style.display='flex'; hb.onclick=openGrpModal; hb.textContent='＋ Group'; }
+  else { hb.style.display='none'; }
+  if (t==='exp')  renderExp();
+  if (t==='grp')  renderGrp();
+  if (t==='sum')  renderSum();
+  window.scrollTo(0,0);
+}
+function onHdrAdd() { if(curTab==='grp') openGrpModal(); else openExpModal(); }
+
+// ═══════════════════════════════════════════════════
+//  MODALS & DIALOG
+// ═══════════════════════════════════════════════════
+function openM(id) { document.getElementById(id).classList.add('show'); }
+function closeM(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('show'); }));
+
+let toastTm;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTm);
+  toastTm=setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+function confirm2(title, msg, cb, danger=true) {
+  document.getElementById('dlgT').textContent=title;
+  document.getElementById('dlgM').textContent=msg;
+  document.getElementById('dlgOk').className='btn bSm '+(danger?'bDng':'bOk');
+  dlgCb=cb;
+  document.getElementById('dlg').classList.add('show');
+}
+function closeDlg() { document.getElementById('dlg').classList.remove('show'); dlgCb=null; }
+document.getElementById('dlgOk').onclick = () => { if(dlgCb) dlgCb(); closeDlg(); };
+
+// ═══════════════════════════════════════════════════
+//  GROUPS
+// ═══════════════════════════════════════════════════
+function openGrpModal(eid=null) {
+  document.getElementById('mGrpId').value=eid||'';
+  document.getElementById('mGrpT').textContent=eid?'✏️ Edit Group':'👥 Create Group';
+  document.getElementById('gName').value='';
+  document.getElementById('gMems').value='';
+  if(eid){ const g=db.groups.find(x=>x.id===eid); if(g){ document.getElementById('gName').value=g.name; document.getElementById('gMems').value=g.members.join('\n'); } }
+  openM('mGrp');
+}
+function saveGrp() {
+  const name=document.getElementById('gName').value.trim();
+  const mems=document.getElementById('gMems').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const eid=document.getElementById('mGrpId').value;
+  if(!name){toast('❌ Group name required');return;}
+  if(mems.length<2){toast('❌ At least 2 members needed');return;}
+  if(eid){const g=db.groups.find(x=>x.id===eid);if(g){g.name=name;g.members=mems;}}
+  else db.groups.push({id:uid(),name,members:mems});
+  save(); closeM('mGrp'); renderGrp(); buildChips(); renderStats();
+  toast('✅ Group saved!');
+}
+function delGrp(id) {
+  confirm2('Delete Group','Delete this group and all its expenses?',()=>{
+    db.groups=db.groups.filter(g=>g.id!==id);
+    db.expenses=db.expenses.filter(e=>e.groupId!==id);
+    db.settled=db.settled.filter(s=>s.groupId!==id);
+    save(); renderGrp(); buildChips(); renderExp(); renderStats();
+    toast('🗑️ Group deleted');
+  });
+}
+function renderGrp() {
+  const el=document.getElementById('grpList');
+  if(!db.groups.length){el.innerHTML=`<div class="empty"><div class="emIc">👥</div><div class="emT">No groups yet</div><div class="emD">Use the button above to create your first group</div></div>`;return;}
+  el.innerHTML=db.groups.map(g=>{
+    const cnt=db.expenses.filter(e=>e.groupId===g.id).length;
+    const ea=ra({t:'eg',id:g.id}),da=ra({t:'dg',id:g.id});
+    return `<div class="gItem">
+      <div class="gTop"><div class="gName">👥 ${h(g.name)}</div>
+        <div style="display:flex;gap:5px"><button class="bIco" onclick="ua('${ea}')">✏️</button><button class="bIcoR" onclick="ua('${da}')">🗑️</button></div>
+      </div>
+      <div class="gMems">${g.members.map(m=>`<span class="mem">👤 ${h(m)}</span>`).join('')}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:5px">${cnt} expense${cnt!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  EXPENSES
+// ═══════════════════════════════════════════════════
+function openExpModal(eid=null) {
+  if(!db.groups.length){toast('❌ Create a group first!');goTab('grp');return;}
+  document.getElementById('mExpId').value=eid||'';
+  document.getElementById('mExpT').textContent=eid?'✏️ Edit Expense':'➕ Add Expense';
+  ['eDesc','eAmt','eNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('eDate').value=today();
+  document.getElementById('ePfx').textContent=db.currency;
+  const gs=document.getElementById('eGrp');
+  gs.innerHTML='<option value="">— Select group —</option>'+db.groups.map(g=>`<option value="${g.id}">${h(g.name)}</option>`).join('');
+  if(eid){
+    const e=db.expenses.find(x=>x.id===eid);
+    if(e){ gs.value=e.groupId; onGrpChange(e.paidBy,e.consumedBy); document.getElementById('eDesc').value=e.desc; document.getElementById('eAmt').value=e.amount; document.getElementById('eDate').value=e.date; document.getElementById('eNotes').value=e.notes||''; }
+  } else {
+    if(grpFilter!=='all'){gs.value=grpFilter;onGrpChange();}
+    else{ document.getElementById('ePaid').innerHTML='<option value="">Select group first…</option>'; document.getElementById('ePills').innerHTML='<span style="font-size:.76rem;color:var(--muted);padding:2px">Select group first…</span>'; }
+  }
+  openM('mExp');
+}
+function onGrpChange(prePaid=null,preCons=null) {
+  const gid=document.getElementById('eGrp').value;
+  const g=db.groups.find(x=>x.id===gid);
+  const pb=document.getElementById('ePaid'),pp=document.getElementById('ePills');
+  if(!g){pb.innerHTML='<option value="">Select group first…</option>';pp.innerHTML='<span style="font-size:.76rem;color:var(--muted);padding:2px">Select group first…</span>';return;}
+  pb.innerHTML='<option value="">— Who paid? —</option>'+g.members.map(m=>`<option value="${h(m)}">${h(m)}</option>`).join('');
+  if(prePaid)pb.value=prePaid;
+  pp.innerHTML='';
+  g.members.forEach(m=>{
+    const on=preCons?preCons.includes(m):true;
+    const p=document.createElement('div');
+    p.className='pill'+(on?' on':'');p.textContent=m;p.onclick=()=>p.classList.toggle('on');
+    pp.appendChild(p);
+  });
+}
+function saveExp() {
+  const gid=document.getElementById('eGrp').value;
+  const desc=document.getElementById('eDesc').value.trim();
+  const amt=parseFloat(document.getElementById('eAmt').value);
+  const date=document.getElementById('eDate').value||today();
+  const paid=document.getElementById('ePaid').value;
+  const notes=document.getElementById('eNotes').value.trim();
+  const eid=document.getElementById('mExpId').value;
+  const cons=Array.from(document.querySelectorAll('#ePills .pill.on')).map(p=>p.textContent);
+  if(!gid){toast('❌ Select a group');return;}
+  if(!desc){toast('❌ Description is required');return;}
+  if(!amt||amt<=0){toast('❌ Enter a valid amount');return;}
+  if(!paid){toast('❌ Select who paid');return;}
+  if(!cons.length){toast('❌ Select at least one person');return;}
+  const exp={id:eid||uid(),groupId:gid,desc,amount:amt,date,paidBy:paid,consumedBy:cons,notes,createdAt:Date.now()};
+  if(eid){const i=db.expenses.findIndex(x=>x.id===eid);if(i!==-1){exp.createdAt=db.expenses[i].createdAt;db.expenses[i]=exp;}}
+  else db.expenses.push(exp);
+  save(); closeM('mExp'); renderExp(); renderStats();
+  toast('✅ Expense saved!');
+}
+function delExp(id) {
+  confirm2('Delete Expense','Delete this record? Cannot be undone.',()=>{
+    db.expenses=db.expenses.filter(e=>e.id!==id);
+    save(); renderExp(); renderStats(); toast('🗑️ Deleted');
+  });
+}
+function buildChips() {
+  const el=document.getElementById('filterChips');
+  el.innerHTML=`<div class="chip on" data-g="all" onclick="setF('all',this)">All</div>`+
+    db.groups.map(g=>`<div class="chip" data-g="${g.id}" onclick="setF('${g.id}',this)">${h(g.name)}</div>`).join('');
+  const chip=el.querySelector(`[data-g="${grpFilter}"]`);
+  if(chip){el.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));chip.classList.add('on');}
+}
+function setF(gid,el){grpFilter=gid;document.querySelectorAll('#filterChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderExp();}
+function renderExp() {
+  const el=document.getElementById('expList');
+  let exps=grpFilter==='all'?db.expenses:db.expenses.filter(e=>e.groupId===grpFilter);
+  if(!exps.length){el.innerHTML=`<div class="empty"><div class="emIc">📝</div><div class="emT">No expenses yet</div><div class="emD">Tap "Add New Expense" above to get started</div></div>`;return;}
+  exps=[...exps].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.createdAt-a.createdAt);
+  const grouped={};
+  exps.forEach(e=>{const k=[...e.consumedBy].sort().join('\n');if(!grouped[k])grouped[k]={label:[...e.consumedBy].sort().join(', '),exps:[]};grouped[k].exps.push(e);});
+  const sorted=Object.values(grouped).sort((a,b)=>new Date(b.exps[0].date)-new Date(a.exps[0].date));
+  el.innerHTML=sorted.map(go=>{
+    const tot=go.exps.reduce((s,e)=>s+e.amount,0);
+    const rows=go.exps.map(e=>{
+      const g=db.groups.find(x=>x.id===e.groupId);
+      const per=(e.amount/e.consumedBy.length).toFixed(2);
+      const ea=ra({t:'ee',id:e.id}),da=ra({t:'de',id:e.id});
+      return `<div class="eItem">
+        <div class="eIco">🧾</div>
+        <div class="eInfo">
+          <div class="eDesc">${h(e.desc)}</div>
+          <div class="eMeta">${fmtDate(e.date)}${e.notes?' · '+h(e.notes):''}</div>
+          <div class="eTags">
+            <span class="tag tP">💳 ${h(e.paidBy)}</span>
+            ${g?`<span class="tag tG">📁 ${h(g.name)}</span>`:''}
+            <span class="tag tS">${db.currency}${per}/ea</span>
           </div>
-
-          <div class="form-group" style="flex: 1">
-            <label class="label">Consumed By</label>
-
-            <!-- Hidden value used by the app -->
-            <input type="hidden" id="inpConsumed" />
-
-            <div class="name-dropdown" id="consumedDropdown">
-              <button
-                type="button"
-                class="name-drop-btn"
-                onclick="openNamePicker('consumed')"
-                aria-haspopup="dialog"
-                aria-expanded="false"
-              >
-                <span id="consumedDisplay" class="name-drop-text"
-                  >Select / Add</span
-                >
-                <i class="fas fa-chevron-down"></i>
-              </button>
-              <div class="name-drop-panel hidden" id="consumedPanel">
-                <div class="name-drop-add">
-                  <input
-                    type="text"
-                    id="consumedNewName"
-                    class="input"
-                    placeholder="Add new name"
-                  />
-                  <button
-                    class="btn btn-primary"
-                    style="padding: 10px 12px; min-width: auto"
-                    onclick="addNameFromInput('consumed')"
-                  >
-                    <i class="fas fa-plus"></i>
-                  </button>
-                </div>
-                <div class="name-drop-list" id="consumedList"></div>
-                <button
-                  type="button"
-                  class="name-drop-btn"
-                  onclick="openNamePicker('consumed')"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
+        </div>
+        <div class="eRight">
+          <div class="eAmt">${db.currency}${e.amount.toFixed(2)}</div>
+          <div class="rBtns">
+            <button class="bIco" onclick="ua('${ea}')">✏️</button>
+            <button class="bIcoR" onclick="ua('${da}')">🗑️</button>
           </div>
         </div>
+      </div>`;
+    }).join('');
+    return `<div class="card">
+      <div class="cH"><h3>👥 <em>${h(go.label)}</em></h3><span style="font-size:.84rem;font-weight:800;color:var(--p);white-space:nowrap">${db.currency}${tot.toFixed(2)}</span></div>
+      <div class="cBody">${rows}</div>
+    </div>`;
+  }).join('');
+}
+function renderStats(){
+  const tot=db.expenses.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('sTotal').textContent=db.currency+(tot>=10000?(tot/1000).toFixed(1)+'k':tot.toFixed(0));
+  document.getElementById('sCount').textContent=db.expenses.length;
+  document.getElementById('sGrps').textContent=db.groups.length;
+}
 
-        <div
-          class="label"
-          style="
-            margin-top: -10px;
-            margin-bottom: 15px;
-            font-weight: 400;
-            font-size: 0.75rem;
-          "
-        >
-          Tip: Add a name once, then just tap to select next time.
-        </div>
-
-        <div class="form-group">
-          <label class="label">Description</label>
-          <input type="text" id="inpDesc" class="input" />
-        </div>
-
-        <button class="btn btn-primary" onclick="saveEntry()">
-          Save Record
-        </button>
-
-        <div
-          id="editTools"
-          class="hidden"
-          style="display: flex; gap: 10px; margin-top: 10px"
-        >
-          <button class="btn btn-copy" onclick="triggerCopy()">
-            <i class="fas fa-copy"></i> Copy
-          </button>
-          <button class="btn btn-danger" onclick="deleteEntry()">
-            <i class="fas fa-trash"></i> Delete
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: DATE PICKER FOR SUMMARY -->
-    <div class="modal-overlay" id="modalDateFilter">
-      <div class="modal">
-        <h3>Select Date Range</h3>
-        <div class="form-group">
-          <label class="label">From</label>
-          <input type="date" id="sumStart" class="input" />
-        </div>
-        <div class="form-group">
-          <label class="label">To</label>
-          <input type="date" id="sumEnd" class="input" />
-        </div>
-        <button class="btn btn-primary" onclick="applyDateFilter()">
-          Apply Filter
-        </button>
-        <button class="btn btn-outline" onclick="closeModal('modalDateFilter')">
-          Cancel
-        </button>
-      </div>
-    </div>
-
-    <!-- MODAL: EXPORT -->
-    <div class="modal-overlay" id="modalExport">
-      <div class="modal">
-        <h3>Export Data</h3>
-        <div class="form-group">
-          <label class="label">From</label>
-          <input type="date" id="expStart" class="input" />
-        </div>
-        <div class="form-group">
-          <label class="label">To</label>
-          <input type="date" id="expEnd" class="input" />
-        </div>
-        <button class="btn btn-primary" onclick="executeExport('xls')">
-          Download Excel (XLS)
-        </button>
-        <button class="btn btn-copy" onclick="executeExport('sharexls')">
-          Share Excel
-        </button>
-
-        <button class="btn btn-outline" onclick="closeModal('modalExport')">
-          Cancel
-        </button>
-      </div>
-    </div>
-
-    <!-- MODAL: COPY DATE -->
-    <div class="modal-overlay" id="modalCopyDate">
-      <div class="modal">
-        <h3>Copy Record</h3>
-        <div class="form-group">
-          <label class="label">Select Date</label>
-          <input type="date" id="copyDatePicker" class="input" />
-        </div>
-        <button class="btn btn-primary" onclick="confirmCopyWithDate()">
-          Create Copy
-        </button>
-        <button class="btn btn-outline" onclick="closeModal('modalCopyDate')">
-          Cancel
-        </button>
-      </div>
-    </div>
-
-    <!-- MODAL: TEMPLATE MANAGER -->
-    <div class="modal-overlay" id="modalTemplates">
-      <div class="modal">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-          "
-        >
-          <h3 style="margin: 0">Templates</h3>
-          <i
-            class="fas fa-times"
-            onclick="closeModal('modalTemplates')"
-            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
-          ></i>
-        </div>
-
-        <div class="form-group">
-          <label class="label">Add Template Name</label>
-          <input
-            type="text"
-            id="tplName"
-            class="input"
-            placeholder="e.g. Lunch, Petrol"
-          />
-        </div>
-        <button class="btn btn-primary" onclick="saveCurrentAsTemplate()">
-          <i class="fas fa-plus"></i> Save Current Entry as Template
-        </button>
-
-        <div style="margin-top: 15px">
-          <div class="label" style="margin-bottom: 8px">Saved Templates</div>
-          <div
-            id="templatesList"
-            style="display: flex; flex-direction: column; gap: 10px"
-          ></div>
-        </div>
-
-        <button
-          class="btn btn-outline"
-          style="margin-top: 15px"
-          onclick="closeModal('modalTemplates')"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-
-    <!-- MODAL: MONTH PICKER (for Monthly view) -->
-    <div class="modal-overlay" id="modalMonthPicker">
-      <div class="modal">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-          "
-        >
-          <h3 style="margin: 0">Select Month</h3>
-          <i
-            class="fas fa-times"
-            onclick="closeModal('modalMonthPicker')"
-            style="font-size: 1.2rem; color: #94a3b8; cursor: pointer"
-          ></i>
-        </div>
-
-        <div class="month-head">
-          <button
-            class="date-nav-btn"
-            type="button"
-            onclick="shiftMonthPicker(-1)"
-            aria-label="Previous year"
-          >
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <div class="month-year" id="monthPickerYear">----</div>
-          <button
-            class="date-nav-btn"
-            type="button"
-            onclick="shiftMonthPicker(1)"
-            aria-label="Next year"
-          >
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="month-grid" id="monthGrid"></div>
-      </div>
-    </div>
-
-    <datalist id="namesList"></datalist>
-    <datalist id="groupsList"></datalist>
-    <button class="fab" onclick="openEntryModal()">
-      <i class="fas fa-plus"></i>
-    </button>
-
-    <!-- NAV -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" onclick="switchView('list')" id="btnList">
-        <i class="fas fa-list"></i> <span>Records</span>
-      </button>
-      <button class="nav-item" onclick="switchView('summary')" id="btnSum">
-        <i class="fas fa-chart-pie"></i> <span>Summary</span>
-      </button>
-      <button class="nav-item" onclick="switchView('settings')" id="btnSet">
-        <i class="fas fa-cloud"></i> <span>Sync</span>
-      </button>
-    </nav>
-
-    <!-- FULLSCREEN NAME PICKER (Paid/Consumed) -->
-    <div class="modal-overlay" id="modalNamePicker">
-      <div class="modal modal-full">
-        <div class="modal-full-header">
-          <div>
-            <div
-              id="namePickerTitle"
-              style="font-weight: 800; font-size: 1.1rem"
-            >
-              Select Name
-            </div>
-            <div id="namePickerHint" style="color: #64748b; font-size: 0.85rem">
-              Tap to select
-            </div>
+// ═══════════════════════════════════════════════════
+//  SUMMARY
+// ═══════════════════════════════════════════════════
+function calcDebts(gid) {
+  const exps=db.expenses.filter(e=>e.groupId===gid);
+  const bal={};
+  exps.forEach(e=>{
+    const sh=e.amount/e.consumedBy.length;
+    bal[e.paidBy]=(bal[e.paidBy]||0)+e.amount;
+    e.consumedBy.forEach(p=>{bal[p]=(bal[p]||0)-sh;});
+  });
+  const cr=[],dr=[];
+  Object.entries(bal).forEach(([p,v])=>{const rv=Math.round(v*100)/100;if(Math.abs(rv)<0.01)return;if(rv>0)cr.push({p,v:rv});else dr.push({p,v:-rv});});
+  cr.sort((a,b)=>b.v-a.v);dr.sort((a,b)=>b.v-a.v);
+  const txns=[];let ci=0,di=0;
+  while(ci<cr.length&&di<dr.length){
+    const amt=Math.min(cr[ci].v,dr[di].v);
+    if(amt>0.01)txns.push({from:dr[di].p,to:cr[ci].p,amount:Math.round(amt*100)/100});
+    cr[ci].v-=amt;dr[di].v-=amt;
+    if(cr[ci].v<0.01)ci++;if(dr[di].v<0.01)di++;
+  }
+  return txns;
+}
+function isSettled(gid,from,to){return db.settled.some(s=>s.groupId===gid&&s.from===from&&s.to===to);}
+function doSettle(gid,from,to,amount){
+  confirm2('Mark Settled',`${from} paid ${db.currency}${amount} to ${to}?`,()=>{
+    db.settled=db.settled.filter(s=>!(s.groupId===gid&&s.from===from&&s.to===to));
+    db.settled.push({groupId:gid,from,to,settledAt:new Date().toISOString(),amount});
+    save();renderSum();toast('✅ Marked settled!');
+  },false);
+}
+function doUnsettle(gid,from,to){
+  confirm2('Mark Pending','Mark this debt as pending again?',()=>{
+    db.settled=db.settled.filter(s=>!(s.groupId===gid&&s.from===from&&s.to===to));
+    save();renderSum();toast('↩️ Marked pending');
+  });
+}
+function settleAll(gid){
+  confirm2('Settle All','Mark ALL debts in this group as settled?',()=>{
+    calcDebts(gid).forEach(t=>{
+      db.settled=db.settled.filter(s=>!(s.groupId===gid&&s.from===t.from&&s.to===t.to));
+      db.settled.push({groupId:gid,from:t.from,to:t.to,settledAt:new Date().toISOString(),amount:t.amount});
+    });
+    save();renderSum();toast('✅ All settled!');
+  },false);
+}
+function renderSum(){
+  const el=document.getElementById('sumContent');
+  if(!db.groups.length){el.innerHTML=`<div class="empty"><div class="emIc">📊</div><div class="emT">No groups yet</div><div class="emD">Create groups and add expenses first</div></div>`;return;}
+  el.innerHTML=db.groups.map(g=>{
+    const exps=db.expenses.filter(e=>e.groupId===g.id);
+    const total=exps.reduce((s,e)=>s+e.amount,0);
+    const txns=calcDebts(g.id);
+    const allDone=txns.length>0&&txns.every(t=>isSettled(g.id,t.from,t.to));
+    const bal={};
+    exps.forEach(e=>{const sh=e.amount/e.consumedBy.length;bal[e.paidBy]=(bal[e.paidBy]||0)+e.amount;e.consumedBy.forEach(p=>{bal[p]=(bal[p]||0)-sh;});});
+    let debtsH='';
+    if(!exps.length){debtsH=`<p style="padding:10px 0;text-align:center;font-size:.8rem;color:var(--muted)">No expenses in this group yet</p>`;}
+    else if(!txns.length){debtsH=`<p style="padding:10px 0;text-align:center;font-size:.83rem;color:var(--ok);font-weight:700">✅ All balanced — no settlement needed!</p>`;}
+    else{
+      const saa=ra({t:'sa',gid:g.id});
+      debtsH=txns.map(t=>{
+        const done=isSettled(g.id,t.from,t.to);
+        const sa=ra({t:'s',gid:g.id,from:t.from,to:t.to,amount:t.amount});
+        const ua2=ra({t:'u',gid:g.id,from:t.from,to:t.to});
+        return `<div class="sItem${done?' done':''}">
+          <div class="sInfo">
+            <div class="sNames"><span class="sFrom">${h(t.from)}</span><span class="sArr">→ owes →</span><span class="sTo">${h(t.to)}</span></div>
+            <div class="sAmt">${db.currency}${t.amount.toFixed(2)} ${done?'<span class="badge">✅ Settled</span>':''}</div>
           </div>
-          <button class="icon-btn" type="button" onclick="closeNamePicker()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="modal-full-body">
-          <div class="name-picker-add">
-            <input
-              type="text"
-              id="namePickerNew"
-              class="input"
-              placeholder="Type a new name..."
-            />
-            <button
-              class="btn btn-primary"
-              type="button"
-              onclick="namePickerAddNew()"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
-
-          <div class="name-picker-search">
-            <i class="fas fa-search" style="opacity: 0.7"></i>
-            <input
-              type="text"
-              id="namePickerSearch"
-              class="input"
-              placeholder="Search names..."
-              oninput="renderNamePickerList()"
-            />
-          </div>
-
-          <div id="namePickerList" class="name-picker-list"></div>
-        </div>
-
-        <div class="modal-full-footer">
-          <button
-            class="btn btn-outline"
-            type="button"
-            onclick="closeNamePicker()"
-          >
-            Cancel
-          </button>
-          <button
-            class="btn btn-primary"
-            type="button"
-            id="namePickerDoneBtn"
-            onclick="closeNamePicker()"
-          >
-            Done
-          </button>
+          ${done?`<button class="btn bOut bSm nw" onclick="ua('${ua2}')">↩️ Undo</button>`
+                :`<button class="btn bOk bSm nw" onclick="ua('${sa}')">✅ Settle</button>`}
+        </div>`;
+      }).join('');
+      if(!allDone&&txns.length>1)debtsH+=`<div style="padding:7px 0 2px"><button class="btn bOk bSm" onclick="ua('${saa}')">✅ Settle All</button></div>`;
+    }
+    let balH='';
+    if(exps.length){
+      balH=`<div class="balRow">`+Object.entries(bal).map(([p,v])=>{
+        const rv=Math.round(v*100)/100;
+        const clr=rv>0?'#2e7d32':rv<0?'#c62828':'var(--muted)';
+        const bg=rv>0?'rgba(67,160,71,.1)':rv<0?'rgba(229,57,53,.1)':'var(--bg)';
+        return `<span style="padding:3px 10px;border-radius:20px;background:${bg};color:${clr};font-size:.7rem;font-weight:700">${h(p)}: ${rv>0?'+':''}${db.currency}${Math.abs(rv).toFixed(2)}</span>`;
+      }).join('')+`</div>`;
+    }
+    return `<div class="card">
+      <div class="cH"><h3>👥 <em>${h(g.name)}</em></h3>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:.77rem;color:var(--muted)">${db.currency}${total.toFixed(2)}</span>
+          ${allDone?'<span class="badge">✅ Settled</span>':''}
         </div>
       </div>
-    </div>
-    <!-- MODAL: SETTLED HISTORY -->
-    <div class="modal-overlay" id="modalSettledHistory">
-      <div class="modal modal-full">
-        <div class="modal-full-header">
-          <div>
-            <div style="font-weight: 800; font-size: 1.1rem">
-              Settled History
-            </div>
-            <div style="color: #64748b; font-size: 0.85rem">
-              Restore or delete settled batches
-            </div>
-          </div>
-          <button
-            class="icon-btn"
-            type="button"
-            onclick="closeModal('modalSettledHistory')"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-full-body">
-          <div id="settledHistoryList" class="name-picker-list"></div>
-        </div>
-        <div class="modal-full-footer">
-          <button
-            class="btn btn-outline"
-            type="button"
-            onclick="closeModal('modalSettledHistory')"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+      <div class="cBody">${debtsH}${balH}<div style="padding-bottom:4px"></div></div>
+    </div>`;
+  }).join('');
+}
 
-    <!-- Modern Confirm Modal (replaces browser confirm) -->
-    <div class="ui-overlay" id="uiConfirmOverlay" aria-hidden="true">
-      <div
-        class="ui-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="uiConfirmTitle"
-      >
-        <div class="ui-dialog-head">
-          <div>
-            <div class="ui-dialog-title" id="uiConfirmTitle">Confirm</div>
-            <div class="ui-dialog-sub" id="uiConfirmSub">
-              Please confirm your action
-            </div>
-          </div>
-          <button
-            class="ui-icon-btn"
-            type="button"
-            onclick="uiConfirmClose(false)"
-            aria-label="Close"
-          >
-            <i class="fas fa-times"></i>
-          </button>
+// ═══════════════════════════════════════════════════
+//  ARCHIVE
+// ═══════════════════════════════════════════════════
+function openArchiveDlg(){
+  const d=new Date();
+  document.getElementById('archLabel').value=`Archive ${d.toLocaleString('default',{month:'long',year:'numeric'})}`;
+  openM('mArch');
+}
+function doArchive(){
+  const label=document.getElementById('archLabel').value.trim()||'Archive '+new Date().toLocaleDateString();
+  if(!db.expenses.length){toast('❌ No expenses to archive');return;}
+  db.archives.push({id:uid(),label,date:new Date().toISOString(),expenses:JSON.parse(JSON.stringify(db.expenses)),settled:JSON.parse(JSON.stringify(db.settled)),groups:JSON.parse(JSON.stringify(db.groups))});
+  db.expenses=[];db.settled=[];
+  save();closeM('mArch');renderExp();renderStats();renderSum();toast('📦 Archived & cleared!');
+}
+function openArchiveList(){
+  const el=document.getElementById('archListBody');
+  if(!db.archives.length){el.innerHTML=`<div class="empty"><div class="emIc">📦</div><div class="emT">No archives</div><div class="emD">Archive your data to create a snapshot</div></div>`;}
+  else{
+    el.innerHTML=[...db.archives].reverse().map(a=>{
+      const cnt=a.expenses?a.expenses.length:0;
+      const tot=a.expenses?a.expenses.reduce((s,e)=>s+e.amount,0):0;
+      const res=ra({t:'ra',id:a.id}),del=ra({t:'da',id:a.id});
+      return `<div class="aItem">
+        <div class="aIco">📦</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.87rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(a.label)}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:2px">${fmtDate(a.date.split('T')[0])} · ${cnt} expenses · ${db.currency}${tot.toFixed(2)}</div>
         </div>
-
-        <div class="ui-dialog-body">
-          <div class="ui-dialog-msg" id="uiConfirmMsg"></div>
-          <div
-            class="ui-dialog-details"
-            id="uiConfirmDetails"
-            style="display: none"
-          ></div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button class="btn bP bSm nw" onclick="ua('${res}')">↩️ Restore</button>
+          <button class="btn bSm nw" style="background:rgba(229,57,53,.1);color:var(--err)" onclick="ua('${del}')">🗑️ Delete</button>
         </div>
+      </div>`;
+    }).join('');
+  }
+  openM('mArchList');
+}
+function restoreArch(id){
+  const a=db.archives.find(x=>x.id===id);if(!a)return;
+  confirm2('Restore Archive',`Restore "${a.label}"? Current expenses will be replaced.`,()=>{
+    db.expenses=JSON.parse(JSON.stringify(a.expenses||[]));
+    db.settled=JSON.parse(JSON.stringify(a.settled||[]));
+    (a.groups||[]).forEach(ag=>{if(!db.groups.find(g=>g.id===ag.id))db.groups.push(ag);});
+    save();closeM('mArchList');refreshAll();goTab('exp');toast('✅ Archive restored!');
+  },false);
+}
+function delArch(id){
+  confirm2('Delete Archive','Delete this archive permanently?',()=>{db.archives=db.archives.filter(a=>a.id!==id);save();openArchiveList();toast('🗑️ Archive deleted');});
+}
 
-        <div class="ui-dialog-foot">
-          <button
-            class="ui-btn ui-btn-outline"
-            type="button"
-            onclick="uiConfirmClose(false)"
-            id="uiConfirmCancelBtn"
-          >
-            Cancel
-          </button>
-          <button
-            class="ui-btn ui-btn-primary"
-            type="button"
-            onclick="uiConfirmClose(true)"
-            id="uiConfirmOkBtn"
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
+// ═══════════════════════════════════════════════════
+//  CSV EXPORT
+// ═══════════════════════════════════════════════════
+function exportCSV(){
+  if(!db.expenses.length){toast('❌ No expenses to export');return;}
+  const rows=[['Date','Description','Amount','Currency','Paid By','Consumed By','Per Person','Group','Notes']];
+  db.expenses.forEach(e=>{const g=db.groups.find(x=>x.id===e.groupId);rows.push([e.date,e.desc,e.amount,db.currency,e.paidBy,e.consumedBy.join('; '),(e.amount/e.consumedBy.length).toFixed(2),g?g.name:'—',e.notes||'']);});
+  rows.push([]);rows.push(['=== SETTLEMENT SUMMARY ===']);rows.push(['Group','From','To','Amount','Status']);
+  db.groups.forEach(g=>{calcDebts(g.id).forEach(t=>{rows.push([g.name,t.from,t.to,t.amount.toFixed(2),isSettled(g.id,t.from,t.to)?'Settled':'Pending']);});});
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`SplitEase_${today()}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('📥 CSV downloaded!');
+}
 
-    <script src="script.js?v=1"></script>
-  </body>
+// ═══════════════════════════════════════════════════
+//  CURRENCY  (built-in + custom)
+// ═══════════════════════════════════════════════════
+function allCurrencies() {
+  return [...BASE_CURRENCIES, ...(db.customCurrencies||[])];
+}
+function openCurrency(){
+  document.getElementById('custSym').value='';
+  document.getElementById('custName').value='';
+  document.getElementById('curBody').innerHTML=allCurrencies().map(c=>{
+    const on=c.s===db.currency&&c.n===db.curName;
+    const ca=ra({t:'sc',s:c.s,n:c.n});
+    return `<div class="mRow" style="${on?'background:rgba(92,107,192,.08);':''}" onclick="ua('${ca}')">
+      <div style="width:36px;text-align:center;font-size:1rem;font-weight:800;color:var(--p)">${h(c.s)}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:.86rem">${h(c.s)} — ${h(c.n)}</div></div>
+      ${on?'<span style="color:var(--ok)">✅</span>':''}
+    </div>`;
+  }).join('');
+  openM('mCur');
+}
+function setCur(s,n){
+  db.currency=s;db.curName=n;save();closeM('mCur');
+  document.getElementById('curLbl').textContent=s+' '+n;
+  document.getElementById('ePfx').textContent=s;
+  renderExp();renderStats();renderSum();
+  toast('💱 Currency set to '+s);
+}
+function addCustomCurrency(){
+  const sym=document.getElementById('custSym').value.trim();
+  const name=document.getElementById('custName').value.trim();
+  if(!sym){toast('❌ Enter a currency symbol');return;}
+  if(!name){toast('❌ Enter a currency name');return;}
+  if(!db.customCurrencies)db.customCurrencies=[];
+  // avoid duplicate
+  if(!db.customCurrencies.find(c=>c.s===sym&&c.n===name))
+    db.customCurrencies.push({s:sym,n:name});
+  setCur(sym,name);
+  toast('✅ Custom currency added & set!');
+}
+
+// ═══════════════════════════════════════════════════
+//  CLEAR ALL
+// ═══════════════════════════════════════════════════
+function confirmClearAll(){
+  confirm2('Clear All Data','Permanently delete ALL data? Cannot be undone!',()=>{
+    db={groups:[],expenses:[],settled:[],archives:[],currency:'₹',curName:'Indian Rupee',customCurrencies:[]};
+    save();refreshAll();document.getElementById('curLbl').textContent='₹ Indian Rupee';toast('🗑️ All data cleared');
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  ACTION DISPATCH
+// ═══════════════════════════════════════════════════
+function ua(id){
+  const a=AC[id];if(!a)return;
+  switch(a.t){
+    case 'ee': openExpModal(a.id);break;
+    case 'de': delExp(a.id);break;
+    case 'eg': openGrpModal(a.id);break;
+    case 'dg': delGrp(a.id);break;
+    case 's':  doSettle(a.gid,a.from,a.to,a.amount);break;
+    case 'u':  doUnsettle(a.gid,a.from,a.to);break;
+    case 'sa': settleAll(a.gid);break;
+    case 'ra': restoreArch(a.id);break;
+    case 'da': delArch(a.id);break;
+    case 'sc': setCur(a.s,a.n);break;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
+function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmtDate(s){try{return new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+function refreshAll(){buildChips();renderExp();renderStats();renderGrp();renderSum();}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+async function init(){
+  loadFromLS();
+  document.getElementById('curLbl').textContent=db.currency+' '+db.curName;
+  document.getElementById('ePfx').textContent=db.currency;
+  buildChips();renderExp();renderStats();renderGrp();
+  await tryRestoreHandle();
+}
+init();
+</script>
+</body>
 </html>
