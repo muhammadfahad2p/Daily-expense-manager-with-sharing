@@ -1,0 +1,116 @@
+{
+  "schema": "SplitEaseDB",
+  "version": 3,
+  "activeUser": "muhammadfahad2p",
+  "users": {
+    "muhammadfahad2p": {
+      "password": "ABC123",
+      "data": {
+        "groups": [
+          {
+            "id": "mqj3ogpssw4",
+            "name": "Office",
+            "members": [
+              "Kaleem",
+              "Fahad"
+            ]
+          },
+          {
+            "id": "mqj3oxztae4",
+            "name": "Room",
+            "members": [
+              "Fahad",
+              "Asad",
+              "Ziad",
+              "Kaji",
+              "Waseem"
+            ]
+          }
+        ],
+        "expenses": [
+          {
+            "id": "mqj3r69c668",
+            "groupId": "mqj3ogpssw4",
+            "desc": "Lunch",
+            "amount": 30,
+            "date": "2026-06-18",
+            "paidBy": "Kaleem",
+            "consumedBy": [
+              "Kaleem",
+              "Fahad"
+            ],
+            "notes": "test",
+            "createdAt": 1781763114865
+          },
+          {
+            "id": "mqj6ctsfcob",
+            "groupId": "mqj3oxztae4",
+            "desc": "test",
+            "amount": 50,
+            "date": "2026-06-18",
+            "paidBy": "Fahad",
+            "consumedBy": [
+              "Fahad",
+              "Asad",
+              "Ziad",
+              "Kaji",
+              "Waseem"
+            ],
+            "notes": "",
+            "createdAt": 1781767484367
+          }
+        ],
+        "settled": [],
+        "archives": [
+          {
+            "id": "mqj4t9u9a0g",
+            "label": "Archive June 2026",
+            "date": "2026-06-18T06:41:32.433Z",
+            "expenses": [
+              {
+                "id": "mqj3r69c668",
+                "groupId": "mqj3ogpssw4",
+                "desc": "Lunch",
+                "amount": 30,
+                "date": "2026-06-18",
+                "paidBy": "Kaleem",
+                "consumedBy": [
+                  "Kaleem",
+                  "Fahad"
+                ],
+                "notes": "test",
+                "createdAt": 1781763114865
+              }
+            ],
+            "settled": [],
+            "groups": [
+              {
+                "id": "mqj3ogpssw4",
+                "name": "Office",
+                "members": [
+                  "Kaleem",
+                  "Fahad"
+                ]
+              },
+              {
+                "id": "mqj3oxztae4",
+                "name": "Room",
+                "members": [
+                  "Fahad",
+                  "Asad",
+                  "Ziad",
+                  "Kaji",
+                  "Waseem"
+                ]
+              }
+            ]
+          }
+        ],
+        "currency": "﷼",
+        "curName": "Saudi Riyal",
+        "customCurrencies": []
+      }
+    }
+  },
+  "updatedAt": "2026-06-18T07:52:15.587Z"
+}
