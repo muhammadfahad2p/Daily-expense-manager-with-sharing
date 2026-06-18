@@ -32,9 +32,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .cH h3{font-size:.88rem;font-weight:800;color:var(--pd);display:flex;align-items:center;gap:5px;min-width:0;flex:1}
 .cH h3 em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cBody{padding:0 13px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.stat{background:#fff;border-radius:11px;padding:10px 6px;text-align:center;box-shadow:var(--sh)}
-.sv{font-size:.98rem;font-weight:800;color:var(--p)}.sl{font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.stat{background:#fff;border-radius:10px;padding:7px 5px;text-align:center;box-shadow:var(--sh)}
+.sv{font-size:.86rem;font-weight:800;color:var(--p);line-height:1.1}.sl{font-size:.55rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px}
+.expTools{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:9px;margin-bottom:9px}
+.filterGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px}.filterGrid .fG{margin-bottom:0}.filterGrid .fL{font-size:.61rem;margin-bottom:3px}.filterGrid .fI{padding:8px 9px;font-size:.78rem;border-radius:9px}
+.searchBar{display:flex;align-items:center;gap:7px;background:#fff;border:2px solid var(--bdr);border-radius:11px;padding:8px 10px;box-shadow:var(--sh)}
+.searchBar.inTools{box-shadow:none;margin-bottom:7px}.searchIcon{font-size:.93rem;color:var(--muted);flex-shrink:0}.searchInput{flex:1;border:none;background:transparent;font-size:.84rem;color:var(--txt);outline:none;min-width:0}.searchClear{border:none;background:transparent;color:var(--muted);font-size:.86rem;cursor:pointer;padding:2px 4px;display:none}.searchClear.show{display:block}
+.toolFoot{display:flex;align-items:center;justify-content:space-between;gap:8px}.tinyHint{font-size:.67rem;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.linkBtn{border:none;background:transparent;color:var(--p);font-size:.72rem;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sumPersonGrid{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0}.personRow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 9px;border:1px solid var(--bdr);border-radius:10px;background:#fff}.personName{font-size:.8rem;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.personMini{font-size:.69rem;color:var(--muted);font-weight:700;text-align:right}.personAmt{font-size:.78rem;font-weight:800;color:var(--p);text-align:right;white-space:nowrap}.sectionNote{font-size:.74rem;color:var(--muted);line-height:1.5;padding:9px 0}.chkRow{display:flex;align-items:center;gap:8px;padding:9px 10px;border:2px solid var(--bdr);border-radius:10px;font-size:.8rem;font-weight:700;color:var(--txt);background:#fff}.chkRow input{width:16px;height:16px;accent-color:var(--p)}.hide{display:none!important}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:5px;margin-bottom:8px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:5px 12px;border-radius:20px;font-size:.73rem;font-weight:700;white-space:nowrap;cursor:pointer;border:2px solid var(--bdr);background:#fff;color:var(--muted);transition:all .15s;flex-shrink:0}
@@ -119,6 +125,7 @@ textarea.fI{resize:none;line-height:1.5}
 .fileBarInfo{flex:1;color:var(--muted)}
 .fileBarInfo b{color:var(--txt)}
 .reconnectBtn{padding:4px 10px;border-radius:6px;border:none;background:var(--p);color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.userBadge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:rgba(92,107,192,.1);color:var(--pd);font-size:.7rem;font-weight:800}
 /* Custom currency section */
 .curCustom{padding:12px 13px;border-top:1px solid var(--bdr);background:rgba(92,107,192,.04)}
 .curCustom .fRow{margin-bottom:8px}
@@ -140,7 +147,18 @@ textarea.fI{resize:none;line-height:1.5}
       <div class="stat"><div class="sv" id="sCount">0</div><div class="sl">Entries</div></div>
       <div class="stat"><div class="sv" id="sGrps">0</div><div class="sl">Groups</div></div>
     </div>
-    <button class="addBtn" onclick="openExpModal()">＋ Add New Expense</button>
+    <div class="expTools">
+      <div class="filterGrid">
+        <div class="fG"><label class="fL">Date</label><input type="date" class="fI" id="expDateFilter" onchange="onExpFilterChange()"></div>
+        <div class="fG"><label class="fL">Month</label><input type="month" class="fI" id="expMonthFilter" onchange="onExpFilterChange()"></div>
+      </div>
+      <div class="searchBar inTools">
+        <span class="searchIcon">🔍</span>
+        <input class="searchInput" id="expSearch" placeholder="Search description, payer, group, notes..." oninput="onExpFilterChange()">
+        <button class="searchClear" id="expSearchClear" onclick="clearExpFilters()">✕</button>
+      </div>
+      <div class="toolFoot"><span class="tinyHint" id="expFilterHint">Showing all expenses</span><button class="linkBtn" onclick="clearExpFilters()">Reset</button></div>
+    </div>
     <div class="chips" id="filterChips"></div>
     <div id="expList"></div>
   </div>
@@ -153,11 +171,45 @@ textarea.fI{resize:none;line-height:1.5}
 
   <!-- SUMMARY TAB -->
   <div class="tab" id="tab-sum">
+    <div class="chips" id="summaryChips"></div>
     <div id="sumContent"></div>
   </div>
 
   <!-- MORE TAB -->
   <div class="tab" id="tab-more">
+
+    <!-- USER / JSON PROFILE CARD -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="cH"><h3>👤 <em>User Profile</em></h3><span class="userBadge" id="userLbl">muhammadfahad2p</span></div>
+      <div class="mRow" onclick="openUserModal()">
+        <div class="mIco" style="background:rgba(92,107,192,.12)">🔑</div>
+        <div class="mRowI"><div class="mRowT">Switch / Create JSON User</div><div class="mRowD" id="jsonUserLbl">Active data is loaded for muhammadfahad2p</div></div>
+        <div class="mCh">›</div>
+      </div>
+    </div>
+
+    <!-- GITHUB SYNC CARD -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="cH"><h3>☁️ <em>GitHub JSON Sync</em></h3></div>
+      <div class="alert aI" style="margin:10px 13px">Use one shared JSON file in GitHub. Pull before editing, then push after changes.</div>
+      <div class="mRow" onclick="openGitHubModal()">
+        <div class="mIco" style="background:rgba(126,87,194,.12)">⚙️</div>
+        <div class="mRowI"><div class="mRowT">Configure GitHub File</div><div class="mRowD" id="ghLbl">Not configured</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="pullGitHub()">
+        <div class="mIco" style="background:rgba(3,155,229,.12)">⬇️</div>
+        <div class="mRowI"><div class="mRowT">Pull Latest JSON</div><div class="mRowD">Load the newest database from GitHub</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL"></div>
+      <div class="mRow" onclick="pushGitHub()">
+        <div class="mIco" style="background:rgba(67,160,71,.12)">⬆️</div>
+        <div class="mRowI"><div class="mRowT">Push Current JSON</div><div class="mRowD">Save your current database to GitHub</div></div>
+        <div class="mCh">›</div>
+      </div>
+    </div>
 
     <!-- DATABASE / STORAGE CARD -->
     <div class="card" style="margin-bottom:10px">
@@ -200,9 +252,9 @@ textarea.fI{resize:none;line-height:1.5}
     <!-- DATA MANAGEMENT CARD -->
     <div class="card" style="margin-bottom:10px">
       <div class="cH"><h3>📊 <em>Data Management</em></h3></div>
-      <div class="mRow" onclick="exportCSV()">
+      <div class="mRow" onclick="exportExcel()">
         <div class="mIco" style="background:rgba(67,160,71,.12)">📥</div>
-        <div class="mRowI"><div class="mRowT">Export to Excel (CSV)</div><div class="mRowD">Download all expenses as spreadsheet</div></div>
+        <div class="mRowI"><div class="mRowT">Export Excel Workbook</div><div class="mRowD">Details sheet + Summary sheet</div></div>
         <div class="mCh">›</div>
       </div>
       <div class="divL"></div>
@@ -324,10 +376,28 @@ textarea.fI{resize:none;line-height:1.5}
   <div class="modal">
     <div class="mHandle"></div>
     <div class="mTitle">📦 Archive & Fresh Start</div>
-    <div class="alert aW">⚠️ Expenses will be archived and cleared. Groups are kept.</div>
+    <div class="alert aW">⚠️ Archive by group and period. Only matched expenses are removed when the checkbox is enabled.</div>
     <div class="fG"><label class="fL">Archive Label</label>
       <input type="text" class="fI" id="archLabel" placeholder="e.g. Jan 2025, Q1 Settlement">
     </div>
+    <div class="fG"><label class="fL">Group</label>
+      <select class="fI" id="archGrp"></select>
+    </div>
+    <div class="fG"><label class="fL">Period</label>
+      <select class="fI" id="archPeriod" onchange="onArchivePeriodChange()">
+        <option value="all">All time</option>
+        <option value="month">Specific month</option>
+        <option value="range">Date range</option>
+      </select>
+    </div>
+    <div class="fG hide" id="archMonthWrap"><label class="fL">Month</label>
+      <input type="month" class="fI" id="archMonth">
+    </div>
+    <div class="fRow hide" id="archRangeWrap">
+      <div class="fG"><label class="fL">From</label><input type="date" class="fI" id="archFrom"></div>
+      <div class="fG"><label class="fL">To</label><input type="date" class="fI" id="archTo"></div>
+    </div>
+    <label class="chkRow"><input type="checkbox" id="archClear" checked> Remove archived expenses from active records</label>
     <div class="mBtns">
       <button class="btn bOut" style="flex:.35" onclick="closeM('mArch')">Cancel</button>
       <button class="btn bP" style="flex:.65" onclick="doArchive()">📦 Archive Now</button>
@@ -370,6 +440,43 @@ textarea.fI{resize:none;line-height:1.5}
   </div>
 </div>
 
+<!-- User Modal -->
+<div class="ov" id="mUser">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">👤 JSON User</div>
+    <div class="alert aI">Default user is <b>muhammadfahad2p</b>. Passwords are stored as plain text in the JSON file because this is a simple offline app.</div>
+    <div class="fG"><label class="fL">Username</label><input type="text" class="fI" id="loginUser" autocomplete="username"></div>
+    <div class="fG"><label class="fL">Password</label><input type="password" class="fI" id="loginPass" autocomplete="current-password"></div>
+    <div class="mBtns">
+      <button class="btn bOut" style="flex:.35" onclick="closeM('mUser')">Cancel</button>
+      <button class="btn bP" style="flex:.65" onclick="switchUser()">🔑 Load User</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub Sync Modal -->
+<div class="ov" id="mGitHub">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">☁️ GitHub JSON Sync</div>
+    <div class="alert aW">Do not hardcode your GitHub token inside this HTML file. Paste it here on each trusted device only.</div>
+    <div class="fRow">
+      <div class="fG"><label class="fL">Owner</label><input type="text" class="fI" id="ghOwner" placeholder="GitHub username"></div>
+      <div class="fG"><label class="fL">Repo</label><input type="text" class="fI" id="ghRepo" placeholder="Repository"></div>
+    </div>
+    <div class="fRow">
+      <div class="fG"><label class="fL">Branch</label><input type="text" class="fI" id="ghBranch" placeholder="main"></div>
+      <div class="fG"><label class="fL">JSON Path</label><input type="text" class="fI" id="ghPath" placeholder="splitease_db.json"></div>
+    </div>
+    <div class="fG"><label class="fL">Fine-grained token</label><input type="password" class="fI" id="ghToken" placeholder="GitHub token with contents read/write"></div>
+    <div class="mBtns">
+      <button class="btn bOut" style="flex:.35" onclick="closeM('mGitHub')">Cancel</button>
+      <button class="btn bP" style="flex:.65" onclick="saveGitHubConfig()">💾 Save Sync Settings</button>
+    </div>
+  </div>
+</div>
+
 <!-- Confirm Dialog -->
 <div class="dOv" id="dlg">
   <div class="dlg">
@@ -386,11 +493,22 @@ textarea.fI{resize:none;line-height:1.5}
 // ═══════════════════════════════════════════════════
 //  DATA MODEL
 // ═══════════════════════════════════════════════════
-let db = {
-  groups:[], expenses:[], settled:[], archives:[],
-  currency:'₹', curName:'Indian Rupee',
-  customCurrencies:[]   // [{s, n}]
-};
+const DEFAULT_USER = 'muhammadfahad2p';
+const DEFAULT_PASS = 'ABC123';
+
+function blankData(){
+  return {
+    groups:[], expenses:[], settled:[], archives:[],
+    currency:'₹', curName:'Indian Rupee',
+    customCurrencies:[]
+  };
+}
+
+let db = blankData();
+let rootDB = {schema:'SplitEaseDB', version:3, activeUser:DEFAULT_USER, users:{}};
+let activeUser = DEFAULT_USER;
+let activePass = DEFAULT_PASS;
+let ghCfg = {owner:'', repo:'', branch:'main', path:'splitease_db.json', token:''};
 
 const BASE_CURRENCIES = [
   {s:'₹',n:'Indian Rupee'},{s:'﷼',n:'Saudi Riyal'},{s:'$',n:'US Dollar'},
@@ -401,14 +519,41 @@ const BASE_CURRENCIES = [
   {s:'Rp',n:'Indonesian Rupiah'},{s:'¥',n:'Chinese Yuan'},{s:'kr',n:'Swedish Krona'},
 ];
 
-let curTab='exp', grpFilter='all', dlgCb=null;
+let curTab='exp', grpFilter='all', sumFilter='all', dlgCb=null;
+let expSearch='', expDateFilter='', expMonthFilter='';
 const AC={};   // action map
 
 // ═══════════════════════════════════════════════════
-//  STORAGE — localStorage (primary)
+//  STORAGE — localStorage (primary) + user wrapper
 // ═══════════════════════════════════════════════════
+function normalizeData(d) {
+  const b = blankData();
+  d = d || {};
+  b.groups           = Array.isArray(d.groups) ? d.groups : [];
+  b.expenses         = Array.isArray(d.expenses) ? d.expenses : [];
+  b.settled          = Array.isArray(d.settled) ? d.settled : [];
+  b.archives         = Array.isArray(d.archives) ? d.archives : [];
+  b.currency         = d.currency || '₹';
+  b.curName          = d.curName || 'Indian Rupee';
+  b.customCurrencies = Array.isArray(d.customCurrencies) ? d.customCurrencies : [];
+  return b;
+}
+
+function syncActiveUser() {
+  if (!rootDB || typeof rootDB !== 'object') rootDB = {schema:'SplitEaseDB', version:3, activeUser:DEFAULT_USER, users:{}};
+  if (!rootDB.users) rootDB.users = {};
+  rootDB.schema = 'SplitEaseDB';
+  rootDB.version = 3;
+  rootDB.activeUser = activeUser;
+  rootDB.updatedAt = new Date().toISOString();
+  rootDB.users[activeUser] = {password: activePass, data: normalizeData(db)};
+  return rootDB;
+}
+
+function exportSnapshot() { return syncActiveUser(); }
+
 function save() {
-  try { localStorage.setItem('se4', JSON.stringify(db)); } catch(e) {}
+  try { localStorage.setItem('se4', JSON.stringify(exportSnapshot())); } catch(e) {}
   syncFile(); // async file sync (no-op if no file linked)
 }
 
@@ -416,17 +561,32 @@ function loadFromLS() {
   try {
     const r = localStorage.getItem('se4');
     if (r) applyData(JSON.parse(r));
-  } catch(e) {}
+    else applyData({schema:'SplitEaseDB',version:3,activeUser:DEFAULT_USER,users:{[DEFAULT_USER]:{password:DEFAULT_PASS,data:blankData()}}});
+  } catch(e) { applyData({}); }
 }
 
 function applyData(d) {
-  db.groups           = d.groups           || [];
-  db.expenses         = d.expenses         || [];
-  db.settled          = d.settled          || [];
-  db.archives         = d.archives         || [];
-  db.currency         = d.currency         || '₹';
-  db.curName          = d.curName          || 'Indian Rupee';
-  db.customCurrencies = d.customCurrencies || [];
+  if (d && d.users) {
+    rootDB = d;
+    rootDB.users = rootDB.users || {};
+    activeUser = rootDB.activeUser && rootDB.users[rootDB.activeUser] ? rootDB.activeUser : (Object.keys(rootDB.users)[0] || DEFAULT_USER);
+    if (!rootDB.users[activeUser]) rootDB.users[activeUser] = {password:DEFAULT_PASS, data:blankData()};
+    activePass = rootDB.users[activeUser].password || '';
+    db = normalizeData(rootDB.users[activeUser].data || {});
+  } else {
+    db = normalizeData(d || {});
+    activeUser = DEFAULT_USER;
+    activePass = DEFAULT_PASS;
+    rootDB = {schema:'SplitEaseDB',version:3,activeUser,users:{[activeUser]:{password:activePass,data:db}}};
+  }
+  syncActiveUser();
+  updateUserUI();
+}
+
+function updateUserUI(){
+  const u1=document.getElementById('userLbl'), u2=document.getElementById('jsonUserLbl');
+  if(u1)u1.textContent=activeUser;
+  if(u2)u2.textContent='Active data is loaded for '+activeUser;
 }
 
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
@@ -464,7 +624,7 @@ async function syncFile() {
     const perm = await fsHandle.queryPermission({ mode:'readwrite' });
     if (perm !== 'granted') { setSyncStatus('needs-perm'); return; }
     const w = await fsHandle.createWritable();
-    await w.write(JSON.stringify(db, null, 2));
+    await w.write(JSON.stringify(exportSnapshot(), null, 2));
     await w.close();
     setSyncStatus('synced');
   } catch(e) {
@@ -566,7 +726,7 @@ function updateFileBar() {
 //  JSON EXPORT / IMPORT (always available backup)
 // ═══════════════════════════════════════════════════
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(exportSnapshot(), null, 2)], {type:'application/json'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href=url; a.download=`splitease_db_${today()}.json`;
@@ -604,8 +764,8 @@ function goTab(t) {
   document.getElementById('tab-'+t).classList.add('on');
   document.getElementById('nav-'+t).classList.add('on');
   const hb = document.getElementById('hdrAddBtn');
-  if (t==='exp')  { hb.style.display='flex'; hb.onclick=openExpModal; hb.textContent='＋ Add'; }
-  else if (t==='grp') { hb.style.display='flex'; hb.onclick=openGrpModal; hb.textContent='＋ Group'; }
+  if (t==='exp')  { hb.style.display='flex'; hb.onclick=()=>openExpModal(); hb.textContent='＋ Add'; }
+  else if (t==='grp') { hb.style.display='flex'; hb.onclick=()=>openGrpModal(); hb.textContent='＋ Group'; }
   else { hb.style.display='none'; }
   if (t==='exp')  renderExp();
   if (t==='grp')  renderGrp();
@@ -658,7 +818,7 @@ function saveGrp() {
   if(mems.length<2){toast('❌ At least 2 members needed');return;}
   if(eid){const g=db.groups.find(x=>x.id===eid);if(g){g.name=name;g.members=mems;}}
   else db.groups.push({id:uid(),name,members:mems});
-  save(); closeM('mGrp'); renderGrp(); buildChips(); renderStats();
+  save(); closeM('mGrp'); renderGrp(); buildChips(); buildSummaryChips(); renderStats();
   toast('✅ Group saved!');
 }
 function delGrp(id) {
@@ -666,7 +826,7 @@ function delGrp(id) {
     db.groups=db.groups.filter(g=>g.id!==id);
     db.expenses=db.expenses.filter(e=>e.groupId!==id);
     db.settled=db.settled.filter(s=>s.groupId!==id);
-    save(); renderGrp(); buildChips(); renderExp(); renderStats();
+    save(); renderGrp(); buildChips(); buildSummaryChips(); renderExp(); renderStats();
     toast('🗑️ Group deleted');
   });
 }
@@ -739,13 +899,13 @@ function saveExp() {
   const exp={id:eid||uid(),groupId:gid,desc,amount:amt,date,paidBy:paid,consumedBy:cons,notes,createdAt:Date.now()};
   if(eid){const i=db.expenses.findIndex(x=>x.id===eid);if(i!==-1){exp.createdAt=db.expenses[i].createdAt;db.expenses[i]=exp;}}
   else db.expenses.push(exp);
-  save(); closeM('mExp'); renderExp(); renderStats();
+  save(); closeM('mExp'); renderExp(); renderStats(); renderSum();
   toast('✅ Expense saved!');
 }
 function delExp(id) {
   confirm2('Delete Expense','Delete this record? Cannot be undone.',()=>{
     db.expenses=db.expenses.filter(e=>e.id!==id);
-    save(); renderExp(); renderStats(); toast('🗑️ Deleted');
+    save(); renderExp(); renderStats(); renderSum(); toast('🗑️ Deleted');
   });
 }
 function buildChips() {
@@ -755,11 +915,49 @@ function buildChips() {
   const chip=el.querySelector(`[data-g="${grpFilter}"]`);
   if(chip){el.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));chip.classList.add('on');}
 }
-function setF(gid,el){grpFilter=gid;document.querySelectorAll('#filterChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderExp();}
+function setF(gid,el){grpFilter=gid;document.querySelectorAll('#filterChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderExp();renderStats();}
+function onExpFilterChange(){
+  expSearch=(document.getElementById('expSearch')?.value||'').trim().toLowerCase();
+  expDateFilter=document.getElementById('expDateFilter')?.value||'';
+  expMonthFilter=document.getElementById('expMonthFilter')?.value||'';
+  const clear=document.getElementById('expSearchClear');
+  if(clear)clear.classList.toggle('show', !!(expSearch||expDateFilter||expMonthFilter));
+  renderExp();renderStats();
+}
+function clearExpFilters(){
+  expSearch='';expDateFilter='';expMonthFilter='';
+  const s=document.getElementById('expSearch'),d=document.getElementById('expDateFilter'),m=document.getElementById('expMonthFilter'),c=document.getElementById('expSearchClear');
+  if(s)s.value=''; if(d)d.value=''; if(m)m.value=''; if(c)c.classList.remove('show');
+  renderExp();renderStats();
+}
+function getFilteredExpenses(){
+  let exps=grpFilter==='all'?db.expenses:db.expenses.filter(e=>e.groupId===grpFilter);
+  if(expDateFilter) exps=exps.filter(e=>e.date===expDateFilter);
+  if(expMonthFilter) exps=exps.filter(e=>(e.date||'').slice(0,7)===expMonthFilter);
+  if(expSearch){
+    exps=exps.filter(e=>{
+      const g=db.groups.find(x=>x.id===e.groupId);
+      const hay=[e.desc,e.amount,e.date,e.paidBy,(e.consumedBy||[]).join(' '),g?g.name:'',e.notes].join(' ').toLowerCase();
+      return hay.includes(expSearch);
+    });
+  }
+  return exps;
+}
+function updateExpHint(count){
+  const hint=document.getElementById('expFilterHint');
+  if(!hint)return;
+  const parts=[];
+  if(grpFilter!=='all'){const g=db.groups.find(x=>x.id===grpFilter);if(g)parts.push('Group: '+g.name);}
+  if(expDateFilter)parts.push('Date: '+expDateFilter);
+  if(expMonthFilter)parts.push('Month: '+expMonthFilter);
+  if(expSearch)parts.push('Search: '+expSearch);
+  hint.textContent=parts.length?`${count} matching record${count!==1?'s':''}`:'Showing all expenses';
+}
 function renderExp() {
   const el=document.getElementById('expList');
-  let exps=grpFilter==='all'?db.expenses:db.expenses.filter(e=>e.groupId===grpFilter);
-  if(!exps.length){el.innerHTML=`<div class="empty"><div class="emIc">📝</div><div class="emT">No expenses yet</div><div class="emD">Tap "Add New Expense" above to get started</div></div>`;return;}
+  let exps=getFilteredExpenses();
+  updateExpHint(exps.length);
+  if(!exps.length){el.innerHTML=`<div class="empty"><div class="emIc">📝</div><div class="emT">No matching expenses</div><div class="emD">Tap the top-right Add button to create an expense, or reset filters.</div></div>`;return;}
   exps=[...exps].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.createdAt-a.createdAt);
   const grouped={};
   exps.forEach(e=>{const k=[...e.consumedBy].sort().join('\n');if(!grouped[k])grouped[k]={label:[...e.consumedBy].sort().join(', '),exps:[]};grouped[k].exps.push(e);});
@@ -797,10 +995,13 @@ function renderExp() {
   }).join('');
 }
 function renderStats(){
-  const tot=db.expenses.reduce((s,e)=>s+e.amount,0);
+  const exps=getFilteredExpenses();
+  const tot=exps.reduce((s,e)=>s+e.amount,0);
+  const grpCount=new Set(exps.map(e=>e.groupId)).size;
   document.getElementById('sTotal').textContent=db.currency+(tot>=10000?(tot/1000).toFixed(1)+'k':tot.toFixed(0));
-  document.getElementById('sCount').textContent=db.expenses.length;
-  document.getElementById('sGrps').textContent=db.groups.length;
+  document.getElementById('sCount').textContent=exps.length;
+  document.getElementById('sGrps').textContent=grpCount;
+  updateExpHint(exps.length);
 }
 
 // ═══════════════════════════════════════════════════
@@ -849,10 +1050,44 @@ function settleAll(gid){
     save();renderSum();toast('✅ All settled!');
   },false);
 }
+function buildSummaryChips() {
+  const el=document.getElementById('summaryChips');
+  if(!el)return;
+  el.innerHTML=`<div class="chip on" data-g="all" onclick="setSumF('all',this)">All</div>`+
+    db.groups.map(g=>`<div class="chip" data-g="${g.id}" onclick="setSumF('${g.id}',this)">${h(g.name)}</div>`).join('');
+  const chip=el.querySelector(`[data-g="${sumFilter}"]`);
+  if(chip){el.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));chip.classList.add('on');}
+}
+function setSumF(gid,el){sumFilter=gid;document.querySelectorAll('#summaryChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderSum();}
+function getSummaryExpenses(){return sumFilter==='all'?db.expenses:db.expenses.filter(e=>e.groupId===sumFilter);}
+function calcPersonTotals(exps){
+  const paid={},consumed={};
+  exps.forEach(e=>{
+    paid[e.paidBy]=(paid[e.paidBy]||0)+e.amount;
+    const sh=e.amount/(e.consumedBy||[]).length;
+    (e.consumedBy||[]).forEach(p=>{consumed[p]=(consumed[p]||0)+sh;});
+  });
+  return Array.from(new Set([...Object.keys(paid),...Object.keys(consumed)])).sort((a,b)=>a.localeCompare(b)).map(name=>({name,paid:paid[name]||0,consumed:consumed[name]||0,net:(paid[name]||0)-(consumed[name]||0)}));
+}
+function renderPaidConsumedCard(exps){
+  const rows=calcPersonTotals(exps);
+  const scope=sumFilter==='all'?'All groups':(db.groups.find(g=>g.id===sumFilter)?.name||'Selected group');
+  if(!rows.length){return `<div class="card"><div class="cH"><h3>💳 <em>Who Paid / Who Consumed</em></h3><span style="font-size:.72rem;color:var(--muted)">${h(scope)}</span></div><div class="cBody"><div class="sectionNote">No expenses available for this summary filter.</div></div></div>`;}
+  return `<div class="card">
+    <div class="cH"><h3>💳 <em>Who Paid / Who Consumed</em></h3><span style="font-size:.72rem;color:var(--muted)">${h(scope)}</span></div>
+    <div class="cBody"><div class="sumPersonGrid">
+      <div class="personRow" style="background:rgba(92,107,192,.06)"><div class="personName">Person</div><div class="personMini">Paid</div><div class="personMini">Consumed</div></div>
+      ${rows.map(r=>`<div class="personRow"><div class="personName">👤 ${h(r.name)}</div><div class="personAmt">${db.currency}${r.paid.toFixed(2)}</div><div class="personAmt">${db.currency}${r.consumed.toFixed(2)}</div></div>`).join('')}
+    </div></div>
+  </div>`;
+}
 function renderSum(){
+  buildSummaryChips();
   const el=document.getElementById('sumContent');
   if(!db.groups.length){el.innerHTML=`<div class="empty"><div class="emIc">📊</div><div class="emT">No groups yet</div><div class="emD">Create groups and add expenses first</div></div>`;return;}
-  el.innerHTML=db.groups.map(g=>{
+  const groups=sumFilter==='all'?db.groups:db.groups.filter(g=>g.id===sumFilter);
+  let html=renderPaidConsumedCard(getSummaryExpenses());
+  html+=groups.map(g=>{
     const exps=db.expenses.filter(e=>e.groupId===g.id);
     const total=exps.reduce((s,e)=>s+e.amount,0);
     const txns=calcDebts(g.id);
@@ -898,6 +1133,7 @@ function renderSum(){
       <div class="cBody">${debtsH}${balH}<div style="padding-bottom:4px"></div></div>
     </div>`;
   }).join('');
+  el.innerHTML=html;
 }
 
 // ═══════════════════════════════════════════════════
@@ -906,14 +1142,59 @@ function renderSum(){
 function openArchiveDlg(){
   const d=new Date();
   document.getElementById('archLabel').value=`Archive ${d.toLocaleString('default',{month:'long',year:'numeric'})}`;
+  const gsel=document.getElementById('archGrp');
+  gsel.innerHTML='<option value="all">All groups</option>'+db.groups.map(g=>`<option value="${g.id}">${h(g.name)}</option>`).join('');
+  document.getElementById('archPeriod').value='all';
+  document.getElementById('archMonth').value=today().slice(0,7);
+  document.getElementById('archFrom').value='';
+  document.getElementById('archTo').value='';
+  document.getElementById('archClear').checked=true;
+  onArchivePeriodChange();
   openM('mArch');
+}
+function onArchivePeriodChange(){
+  const p=document.getElementById('archPeriod').value;
+  document.getElementById('archMonthWrap').classList.toggle('hide',p!=='month');
+  document.getElementById('archRangeWrap').classList.toggle('hide',p!=='range');
+}
+function archiveMatch(e,gid,period,month,from,to){
+  if(gid!=='all'&&e.groupId!==gid)return false;
+  const d=e.date||'';
+  if(period==='month')return month?d.slice(0,7)===month:true;
+  if(period==='range'){
+    if(from&&d<from)return false;
+    if(to&&d>to)return false;
+    return true;
+  }
+  return true;
 }
 function doArchive(){
   const label=document.getElementById('archLabel').value.trim()||'Archive '+new Date().toLocaleDateString();
-  if(!db.expenses.length){toast('❌ No expenses to archive');return;}
-  db.archives.push({id:uid(),label,date:new Date().toISOString(),expenses:JSON.parse(JSON.stringify(db.expenses)),settled:JSON.parse(JSON.stringify(db.settled)),groups:JSON.parse(JSON.stringify(db.groups))});
-  db.expenses=[];db.settled=[];
-  save();closeM('mArch');renderExp();renderStats();renderSum();toast('📦 Archived & cleared!');
+  const gid=document.getElementById('archGrp').value;
+  const period=document.getElementById('archPeriod').value;
+  const month=document.getElementById('archMonth').value;
+  const from=document.getElementById('archFrom').value;
+  const to=document.getElementById('archTo').value;
+  const clear=document.getElementById('archClear').checked;
+  if(period==='range'&&from&&to&&from>to){toast('❌ From date cannot be after To date');return;}
+  const matched=db.expenses.filter(e=>archiveMatch(e,gid,period,month,from,to));
+  if(!matched.length){toast('❌ No expenses matched this archive filter');return;}
+  const expIds=new Set(matched.map(e=>e.id));
+  const affectedGroups=new Set(matched.map(e=>e.groupId));
+  const groupSnapshot=db.groups.filter(g=>gid==='all'||affectedGroups.has(g.id));
+  const settledSnapshot=db.settled.filter(s=>gid==='all'?affectedGroups.has(s.groupId):s.groupId===gid);
+  db.archives.push({
+    id:uid(),label,date:new Date().toISOString(),
+    filter:{groupId:gid,period,month,from,to,clearActive:clear},
+    expenses:JSON.parse(JSON.stringify(matched)),
+    settled:JSON.parse(JSON.stringify(settledSnapshot)),
+    groups:JSON.parse(JSON.stringify(groupSnapshot))
+  });
+  if(clear){
+    db.expenses=db.expenses.filter(e=>!expIds.has(e.id));
+    db.settled=db.settled.filter(s=>!affectedGroups.has(s.groupId));
+  }
+  save();closeM('mArch');renderExp();renderStats();renderSum();toast(`📦 Archived ${matched.length} record${matched.length!==1?'s':''}!`);
 }
 function openArchiveList(){
   const el=document.getElementById('archListBody');
@@ -923,11 +1204,15 @@ function openArchiveList(){
       const cnt=a.expenses?a.expenses.length:0;
       const tot=a.expenses?a.expenses.reduce((s,e)=>s+e.amount,0):0;
       const res=ra({t:'ra',id:a.id}),del=ra({t:'da',id:a.id});
+      const f=a.filter||{};
+      const gname=f.groupId&&f.groupId!=='all'?(db.groups.find(g=>g.id===f.groupId)?.name||'Selected group'):'All groups';
+      const period=f.period==='month'?(f.month||'Month'):(f.period==='range'?`${f.from||'Start'} → ${f.to||'End'}`:'All time');
       return `<div class="aItem">
         <div class="aIco">📦</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:.87rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(a.label)}</div>
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px">${fmtDate(a.date.split('T')[0])} · ${cnt} expenses · ${db.currency}${tot.toFixed(2)}</div>
+          <div style="font-size:.66rem;color:var(--muted);margin-top:2px">${h(gname)} · ${h(period)}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
           <button class="btn bP bSm nw" onclick="ua('${res}')">↩️ Restore</button>
@@ -952,19 +1237,91 @@ function delArch(id){
 }
 
 // ═══════════════════════════════════════════════════
-//  CSV EXPORT
+//  EXCEL EXPORT — multi-sheet .xls without external libraries
 // ═══════════════════════════════════════════════════
-function exportCSV(){
+function xmlEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function xlsCell(v){
+  const isNum=typeof v==='number'&&isFinite(v);
+  return `<Cell><Data ss:Type="${isNum?'Number':'String'}">${xmlEsc(isNum?Number(v.toFixed? v.toFixed(2):v):v)}</Data></Cell>`;
+}
+function xlsSheet(name,rows){return `<Worksheet ss:Name="${xmlEsc(name).slice(0,31)}"><Table>${rows.map(r=>`<Row>${r.map(xlsCell).join('')}</Row>`).join('')}</Table></Worksheet>`;}
+function exportExcel(){
   if(!db.expenses.length){toast('❌ No expenses to export');return;}
-  const rows=[['Date','Description','Amount','Currency','Paid By','Consumed By','Per Person','Group','Notes']];
-  db.expenses.forEach(e=>{const g=db.groups.find(x=>x.id===e.groupId);rows.push([e.date,e.desc,e.amount,db.currency,e.paidBy,e.consumedBy.join('; '),(e.amount/e.consumedBy.length).toFixed(2),g?g.name:'—',e.notes||'']);});
-  rows.push([]);rows.push(['=== SETTLEMENT SUMMARY ===']);rows.push(['Group','From','To','Amount','Status']);
-  db.groups.forEach(g=>{calcDebts(g.id).forEach(t=>{rows.push([g.name,t.from,t.to,t.amount.toFixed(2),isSettled(g.id,t.from,t.to)?'Settled':'Pending']);});});
-  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const detailRows=[['Date','Description','Amount','Currency','Paid By','Consumed By','Per Person','Group','Notes']];
+  db.expenses.forEach(e=>{const g=db.groups.find(x=>x.id===e.groupId);detailRows.push([e.date,e.desc,Number(e.amount),db.currency,e.paidBy,(e.consumedBy||[]).join('; '),Number((e.amount/(e.consumedBy||[]).length).toFixed(2)),g?g.name:'—',e.notes||'']);});
+  const summaryRows=[['Summary Type','Group','Name / From','Paid','Consumed / To','Net / Amount','Status']];
+  calcPersonTotals(db.expenses).forEach(r=>summaryRows.push(['Person Total','All Groups',r.name,Number(r.paid.toFixed(2)),Number(r.consumed.toFixed(2)),Number(r.net.toFixed(2)),'']));
+  summaryRows.push([]);summaryRows.push(['Settlement','Group','From','Paid','To','Amount','Status']);
+  db.groups.forEach(g=>{calcDebts(g.id).forEach(t=>summaryRows.push(['Settlement',g.name,t.from,'',t.to,Number(t.amount.toFixed(2)),isSettled(g.id,t.from,t.to)?'Settled':'Pending']));});
+  const xml=`<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>
+  <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+    ${xlsSheet('Details',detailRows)}${xlsSheet('Summary',summaryRows)}
+  </Workbook>`;
+  const blob=new Blob(['\uFEFF'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download=`SplitEase_${today()}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('📥 CSV downloaded!');
+  a.href=url;a.download=`SplitEase_${today()}.xls`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('📥 Excel workbook downloaded!');
+}
+function exportCSV(){ exportExcel(); }
+
+// ═══════════════════════════════════════════════════
+//  USER + GITHUB SHARING HELPERS
+// ═══════════════════════════════════════════════════
+function openUserModal(){document.getElementById('loginUser').value=activeUser;document.getElementById('loginPass').value=activePass;openM('mUser');}
+function switchUser(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  if(!u){toast('❌ Username is required');return;}
+  if(!p){toast('❌ Password is required');return;}
+  syncActiveUser();
+  if(rootDB.users[u]&&rootDB.users[u].password!==p){toast('❌ Wrong password for this JSON user');return;}
+  if(!rootDB.users[u])rootDB.users[u]={password:p,data:blankData()};
+  activeUser=u;activePass=p;db=normalizeData(rootDB.users[u].data||{});
+  save();closeM('mUser');refreshAll();updateUserUI();toast('✅ User loaded: '+u);
+}
+function loadGitHubConfig(){try{const r=localStorage.getItem('se4_gh');if(r)ghCfg=Object.assign(ghCfg,JSON.parse(r));}catch(e){}updateGitHubUI();}
+function updateGitHubUI(){const el=document.getElementById('ghLbl');if(!el)return;el.textContent=ghCfg.owner&&ghCfg.repo?`${ghCfg.owner}/${ghCfg.repo} · ${ghCfg.path||'splitease_db.json'}`:'Not configured';}
+function openGitHubModal(){
+  document.getElementById('ghOwner').value=ghCfg.owner||'';document.getElementById('ghRepo').value=ghCfg.repo||'';document.getElementById('ghBranch').value=ghCfg.branch||'main';document.getElementById('ghPath').value=ghCfg.path||'splitease_db.json';document.getElementById('ghToken').value=ghCfg.token||'';openM('mGitHub');
+}
+function saveGitHubConfig(){
+  ghCfg={owner:document.getElementById('ghOwner').value.trim(),repo:document.getElementById('ghRepo').value.trim(),branch:document.getElementById('ghBranch').value.trim()||'main',path:document.getElementById('ghPath').value.trim()||'splitease_db.json',token:document.getElementById('ghToken').value.trim()};
+  if(!ghCfg.owner||!ghCfg.repo){toast('❌ Owner and repo are required');return;}
+  try{localStorage.setItem('se4_gh',JSON.stringify(ghCfg));}catch(e){}
+  updateGitHubUI();closeM('mGitHub');toast('✅ GitHub sync settings saved');
+}
+function ghReady(){if(!ghCfg.owner||!ghCfg.repo||!ghCfg.path){toast('❌ Configure GitHub first');return false;}return true;}
+function ghHeaders(){const h={'Accept':'application/vnd.github+json','Content-Type':'application/json'};if(ghCfg.token)h.Authorization='Bearer '+ghCfg.token;return h;}
+function b64enc(str){const bytes=new TextEncoder().encode(str);let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return btoa(bin);}
+function b64dec(str){const bin=atob(String(str||'').replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes);}
+async function getGHFile(){
+  const url=`https://api.github.com/repos/${encodeURIComponent(ghCfg.owner)}/${encodeURIComponent(ghCfg.repo)}/contents/${ghCfg.path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ghCfg.branch||'main')}`;
+  const r=await fetch(url,{headers:ghHeaders()});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error('GitHub error '+r.status);
+  return await r.json();
+}
+async function pullGitHub(){
+  if(!ghReady())return;
+  try{
+    const f=await getGHFile();
+    if(!f||!f.content){toast('❌ JSON file not found in GitHub');return;}
+    applyData(JSON.parse(b64dec(f.content)));
+    save();refreshAll();toast('⬇️ Pulled latest GitHub JSON');
+  }catch(e){toast('❌ '+e.message);}
+}
+async function pushGitHub(){
+  if(!ghReady())return;
+  if(!ghCfg.token){toast('❌ Token is required to push');return;}
+  try{
+    const cur=await getGHFile();
+    const body={message:`Update SplitEase JSON for ${activeUser}`,content:b64enc(JSON.stringify(exportSnapshot(),null,2)),branch:ghCfg.branch||'main'};
+    if(cur&&cur.sha)body.sha=cur.sha;
+    const url=`https://api.github.com/repos/${encodeURIComponent(ghCfg.owner)}/${encodeURIComponent(ghCfg.repo)}/contents/${ghCfg.path.split('/').map(encodeURIComponent).join('/')}`;
+    const r=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+    if(!r.ok)throw new Error('GitHub push failed '+r.status);
+    toast('⬆️ Pushed JSON to GitHub');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 // ═══════════════════════════════════════════════════
@@ -1042,16 +1399,18 @@ function ua(id){
 function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function fmtDate(s){try{return new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
-function refreshAll(){buildChips();renderExp();renderStats();renderGrp();renderSum();}
+function refreshAll(){buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();renderSum();updateUserUI();updateGitHubUI();}
 
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
 async function init(){
   loadFromLS();
+  loadGitHubConfig();
+  document.getElementById('hdrAddBtn').onclick=()=>onHdrAdd();
   document.getElementById('curLbl').textContent=db.currency+' '+db.curName;
   document.getElementById('ePfx').textContent=db.currency;
-  buildChips();renderExp();renderStats();renderGrp();
+  buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();updateUserUI();updateGitHubUI();
   await tryRestoreHandle();
 }
 init();
