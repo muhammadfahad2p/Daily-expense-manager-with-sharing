@@ -235,6 +235,12 @@ textarea.fI{resize:none;line-height:1.5}
         <div class="mCh">›</div>
       </div>
       <div class="divL"></div>
+      <div class="mRow" id="shareExcelRow" onclick="shareExcel()">
+        <div class="mIco" style="background:rgba(3,155,229,.12)">📤</div>
+        <div class="mRowI"><div class="mRowT">Share Excel Workbook</div><div class="mRowD">Send the workbook through WhatsApp, email, or other apps</div></div>
+        <div class="mCh">›</div>
+      </div>
+      <div class="divL" id="shareExcelDiv"></div>
       <div class="mRow" onclick="openArchiveDlg()">
         <div class="mIco" style="background:rgba(251,140,0,.12)">📦</div>
         <div class="mRowI"><div class="mRowT">Archive & Fresh Start</div><div class="mRowD">Save current data, clear expenses</div></div>
@@ -1299,8 +1305,8 @@ function xlsCell(v){
   return `<Cell><Data ss:Type="${isNum?'Number':'String'}">${xmlEsc(isNum?Number(v.toFixed? v.toFixed(2):v):v)}</Data></Cell>`;
 }
 function xlsSheet(name,rows){return `<Worksheet ss:Name="${xmlEsc(name).slice(0,31)}"><Table>${rows.map(r=>`<Row>${r.map(xlsCell).join('')}</Row>`).join('')}</Table></Worksheet>`;}
-function exportExcel(){
-  if(!db.expenses.length){toast('❌ No expenses to export');return;}
+function excelFileName(){return `SplitEase_${today()}.xls`;}
+function buildExcelBlob(){
   const detailRows=[['Date','Description','Amount','Currency','Paid By','Consumed By','Per Person','Group','Notes']];
   db.expenses.forEach(e=>{const g=db.groups.find(x=>x.id===e.groupId);detailRows.push([e.date,e.desc,Number(e.amount),db.currency,e.paidBy,(e.consumedBy||[]).join('; '),Number((e.amount/(e.consumedBy||[]).length).toFixed(2)),g?g.name:'—',e.notes||'']);});
   const summaryRows=[['Summary Type','Group','Name / From','Paid','Consumed / To','Net / Amount','Status']];
@@ -1311,10 +1317,32 @@ function exportExcel(){
   <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
     ${xlsSheet('Details',detailRows)}${xlsSheet('Summary',summaryRows)}
   </Workbook>`;
-  const blob=new Blob(['\uFEFF'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+  return new Blob(['\uFEFF'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+}
+function exportExcel(){
+  if(!db.expenses.length){toast('❌ No expenses to export');return;}
+  const blob=buildExcelBlob();
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download=`SplitEase_${today()}.xls`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  a.href=url;a.download=excelFileName();document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   toast('📥 Excel workbook downloaded!');
+}
+async function shareExcel(){
+  if(!db.expenses.length){toast('❌ No expenses to share');return;}
+  const blob=buildExcelBlob();
+  const name=excelFileName();
+  if(window.AndroidBridge&&typeof AndroidBridge.shareBase64File==='function'){
+    const reader=new FileReader();
+    reader.onloadend=()=>AndroidBridge.shareBase64File(name,reader.result);
+    reader.readAsDataURL(blob);
+    toast('Preparing share...');
+    return;
+  }
+  const file=new File([blob],name,{type:'application/vnd.ms-excel'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    await navigator.share({files:[file],title:'SplitEase Excel Workbook'});
+    return;
+  }
+  exportExcel();
 }
 function exportCSV(){ exportExcel(); }
 
@@ -1419,6 +1447,10 @@ async function init(){
   document.getElementById('hdrAddBtn').onclick=()=>onHdrAdd();
   document.getElementById('curLbl').textContent=db.currency+' '+db.curName;
   document.getElementById('ePfx').textContent=db.currency;
+  if(androidFS){
+    document.getElementById('shareExcelRow').style.display='flex';
+    document.getElementById('shareExcelDiv').style.display='block';
+  }
   buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();updateUserUI();
   await tryRestoreHandle();
 }
