@@ -14,7 +14,7 @@
   --sh:0 2px 10px rgba(60,60,140,.10);--r:13px;--nh:58px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);max-width:480px;margin:0 auto;padding-bottom:calc(var(--nh)+8px)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);max-width:480px;margin:0 auto;padding-bottom:calc(var(--nh)+104px)}
 .hdr{background:linear-gradient(135deg,var(--pd),var(--ps));color:#fff;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(57,73,171,.35)}
 .hdr-title{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:7px}
 .hdr-add{background:rgba(255,255,255,.22);border:none;color:#fff;padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap}
@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--muted);border:none;background:none;font-family:inherit;padding:4px 0;transition:color .18s}
 .ni.on{color:var(--p)}
 .ni-ic{font-size:1.25rem}.ni-lb{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.content{padding:12px}
+.content{padding:12px 12px calc(var(--nh) + 96px)}
 .tab{display:none}.tab.on{display:block}
 .addBtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;border:none;border-radius:var(--r);font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:12px;box-shadow:0 3px 12px rgba(92,107,192,.40);font-family:inherit}
 .addBtn:active{opacity:.88;transform:scale(.98)}
@@ -188,29 +188,6 @@ textarea.fI{resize:none;line-height:1.5}
       </div>
     </div>
 
-    <!-- GITHUB SYNC CARD -->
-    <div class="card" style="margin-bottom:10px">
-      <div class="cH"><h3>☁️ <em>GitHub JSON Sync</em></h3></div>
-      <div class="alert aI" style="margin:10px 13px">Use one shared JSON file in GitHub. Pull before editing, then push after changes.</div>
-      <div class="mRow" onclick="openGitHubModal()">
-        <div class="mIco" style="background:rgba(126,87,194,.12)">⚙️</div>
-        <div class="mRowI"><div class="mRowT">Configure GitHub File</div><div class="mRowD" id="ghLbl">Not configured</div></div>
-        <div class="mCh">›</div>
-      </div>
-      <div class="divL"></div>
-      <div class="mRow" onclick="pullGitHub()">
-        <div class="mIco" style="background:rgba(3,155,229,.12)">⬇️</div>
-        <div class="mRowI"><div class="mRowT">Pull Latest JSON</div><div class="mRowD">Load the newest database from GitHub</div></div>
-        <div class="mCh">›</div>
-      </div>
-      <div class="divL"></div>
-      <div class="mRow" onclick="pushGitHub()">
-        <div class="mIco" style="background:rgba(67,160,71,.12)">⬆️</div>
-        <div class="mRowI"><div class="mRowT">Push Current JSON</div><div class="mRowD">Save your current database to GitHub</div></div>
-        <div class="mCh">›</div>
-      </div>
-    </div>
-
     <!-- DATABASE / STORAGE CARD -->
     <div class="card" style="margin-bottom:10px">
       <div class="cH"><h3>💾 <em>Database Storage</em></h3></div>
@@ -226,7 +203,7 @@ textarea.fI{resize:none;line-height:1.5}
       <!-- actions -->
       <div class="mRow" id="btnLinkFile" onclick="linkNewFile()">
         <div class="mIco" style="background:rgba(67,160,71,.12)">📄</div>
-        <div class="mRowI"><div class="mRowT">Create / Link DB File</div><div class="mRowD">Pick a .json file — app auto-saves to it</div></div>
+        <div class="mRowI"><div class="mRowT">Create / Link DB File</div><div class="mRowD">Choose a .json file — app auto-saves to it</div></div>
         <div class="mCh">›</div>
       </div>
       <div class="divL"></div>
@@ -291,8 +268,8 @@ textarea.fI{resize:none;line-height:1.5}
       <div class="cH"><h3>ℹ️ <em>About</em></h3></div>
       <div style="padding:13px;font-size:.81rem;color:var(--muted);line-height:1.7">
         <b style="color:var(--txt)">SplitEase v2.0</b> — Group expense tracker.<br>
-        💾 <b>Storage:</b> Browser local storage (always on) + optional live JSON file sync.<br>
-        📱 <b>Install:</b> Chrome → Menu → "Add to Home Screen".
+        💾 <b>Storage:</b> App local storage (always on) + optional linked JSON file sync.<br>
+        📱 <b>Install:</b> Android APK WebView app.
       </div>
     </div>
   </div>
@@ -455,28 +432,6 @@ textarea.fI{resize:none;line-height:1.5}
   </div>
 </div>
 
-<!-- GitHub Sync Modal -->
-<div class="ov" id="mGitHub">
-  <div class="modal">
-    <div class="mHandle"></div>
-    <div class="mTitle">☁️ GitHub JSON Sync</div>
-    <div class="alert aW">Do not hardcode your GitHub token inside this HTML file. Paste it here on each trusted device only.</div>
-    <div class="fRow">
-      <div class="fG"><label class="fL">Owner</label><input type="text" class="fI" id="ghOwner" placeholder="GitHub username"></div>
-      <div class="fG"><label class="fL">Repo</label><input type="text" class="fI" id="ghRepo" placeholder="Repository"></div>
-    </div>
-    <div class="fRow">
-      <div class="fG"><label class="fL">Branch</label><input type="text" class="fI" id="ghBranch" placeholder="main"></div>
-      <div class="fG"><label class="fL">JSON Path</label><input type="text" class="fI" id="ghPath" placeholder="splitease_db.json"></div>
-    </div>
-    <div class="fG"><label class="fL">Fine-grained token</label><input type="password" class="fI" id="ghToken" placeholder="GitHub token with contents read/write"></div>
-    <div class="mBtns">
-      <button class="btn bOut" style="flex:.35" onclick="closeM('mGitHub')">Cancel</button>
-      <button class="btn bP" style="flex:.65" onclick="saveGitHubConfig()">💾 Save Sync Settings</button>
-    </div>
-  </div>
-</div>
-
 <!-- Confirm Dialog -->
 <div class="dOv" id="dlg">
   <div class="dlg">
@@ -508,7 +463,6 @@ let db = blankData();
 let rootDB = {schema:'SplitEaseDB', version:3, activeUser:DEFAULT_USER, users:{}};
 let activeUser = DEFAULT_USER;
 let activePass = DEFAULT_PASS;
-let ghCfg = {owner:'', repo:'', branch:'main', path:'splitease_db.json', token:''};
 
 const BASE_CURRENCIES = [
   {s:'₹',n:'Indian Rupee'},{s:'﷼',n:'Saudi Riyal'},{s:'$',n:'US Dollar'},
@@ -522,6 +476,9 @@ const BASE_CURRENCIES = [
 let curTab='exp', grpFilter='all', sumFilter='all', dlgCb=null;
 let expSearch='', expDateFilter='', expMonthFilter='';
 const AC={};   // action map
+const androidFS = !!(window.AndroidBridge && typeof window.AndroidBridge.createLinkedDbFile === 'function');
+let androidDbLinked = false;
+let androidDbName = '';
 
 // ═══════════════════════════════════════════════════
 //  STORAGE — localStorage (primary) + user wrapper
@@ -596,8 +553,9 @@ function ra(data){ const id='r'+uid(); AC[id]=data; return id; }
 //  FILE SYSTEM ACCESS API  (live JSON file sync)
 // ═══════════════════════════════════════════════════
 let fsHandle = null;
-const fsOK   = typeof window.showSaveFilePicker === 'function';
+const fsOK   = !androidFS && typeof window.showSaveFilePicker === 'function';
 let   syncStatus = 'none'; // 'none' | 'synced' | 'needs-perm' | 'error'
+let reconnectPromptShown = false;
 
 /* IndexedDB helpers to persist the FileSystemFileHandle across reloads */
 function idb(mode, val) {
@@ -619,6 +577,17 @@ function idb(mode, val) {
 }
 
 async function syncFile() {
+  if (androidFS) {
+    if (!androidDbLinked) return;
+    try {
+      const ok = AndroidBridge.syncLinkedDb(JSON.stringify(exportSnapshot(), null, 2));
+      setSyncStatus(ok ? 'synced' : 'error');
+    } catch(e) {
+      console.warn('Android file sync error:', e);
+      setSyncStatus('error');
+    }
+    return;
+  }
   if (!fsHandle) return;
   try {
     const perm = await fsHandle.queryPermission({ mode:'readwrite' });
@@ -634,6 +603,13 @@ async function syncFile() {
 }
 
 async function linkNewFile() {
+  if (androidFS) {
+    try {
+      AndroidBridge.createLinkedDbFile(JSON.stringify(exportSnapshot(), null, 2));
+      toast('Choose where to create the DB file');
+    } catch(e) { toast('❌ '+e.message); }
+    return;
+  }
   if (!fsOK) { toast('⚠️ Use Export JSON instead (browser limitation)'); return; }
   try {
     fsHandle = await window.showSaveFilePicker({
@@ -650,6 +626,13 @@ async function linkNewFile() {
 }
 
 async function openExistingFile() {
+  if (androidFS) {
+    try {
+      AndroidBridge.openLinkedDbFile();
+      toast('Choose an existing DB JSON file');
+    } catch(e) { toast('❌ '+e.message); }
+    return;
+  }
   if (!fsOK) {
     // fallback: open JSON import
     document.getElementById('jsonFileInput').click();
@@ -675,6 +658,10 @@ async function openExistingFile() {
 }
 
 async function reconnectFile() {
+  if (androidFS) {
+    openExistingFile();
+    return;
+  }
   if (!fsHandle) return;
   try {
     const perm = await fsHandle.requestPermission({ mode:'readwrite' });
@@ -686,14 +673,44 @@ async function reconnectFile() {
   } catch(e) { toast('❌ '+e.message); }
 }
 
+function promptReconnectOnLoad() {
+  if (reconnectPromptShown || !fsHandle || syncStatus !== 'needs-perm') return;
+  reconnectPromptShown = true;
+  setTimeout(() => {
+    confirm2(
+      'Reconnect DB File',
+      'Reconnect your linked DB file so changes auto-save after this page reload.',
+      () => reconnectFile(),
+      false
+    );
+  }, 350);
+}
+
 async function tryRestoreHandle() {
+  if (androidFS) {
+    try {
+      androidDbLinked = AndroidBridge.hasLinkedDbFile();
+      androidDbName = androidDbLinked ? AndroidBridge.getLinkedDbName() : '';
+      syncStatus = androidDbLinked ? 'synced' : 'none';
+    } catch(e) {
+      androidDbLinked = false;
+      syncStatus = 'error';
+    }
+    updateFileBar();
+    return;
+  }
   if (!fsOK) { document.getElementById('fileBarNoFS').style.display='flex'; return; }
   try {
     const h = await idb('readonly');
     if (h) {
       fsHandle = h;
       const perm = await fsHandle.queryPermission({ mode:'readwrite' });
-      setSyncStatus(perm === 'granted' ? 'synced' : 'needs-perm');
+      if (perm === 'granted') {
+        await syncFile();
+      } else {
+        setSyncStatus('needs-perm');
+        promptReconnectOnLoad();
+      }
     }
   } catch(e) {}
   updateFileBar();
@@ -709,8 +726,18 @@ function updateFileBar() {
   const dot  = document.getElementById('syncDot');
   const txt  = document.getElementById('fileBarText');
   const rbtn = document.getElementById('reconnectBtn');
-  if (!fsOK) return;
+  if (!fsOK && !androidFS) return;
   bar.style.display = 'flex';
+  if (androidFS) {
+    if (!androidDbLinked) {
+      dot.className='syncDot grey'; txt.innerHTML='<b>No DB file linked.</b> Local app storage is active. Link a JSON file for backup auto-save.'; rbtn.style.display='none';
+    } else if (syncStatus==='synced') {
+      dot.className='syncDot green'; txt.innerHTML='<b>'+h(androidDbName||'Linked DB file')+'</b> — Auto-saving on Android'; rbtn.style.display='none';
+    } else {
+      dot.className='syncDot red'; txt.innerHTML='<b>'+h(androidDbName||'Linked DB file')+'</b> — Sync error. Tap reconnect.'; rbtn.style.display='flex';
+    }
+    return;
+  }
   if (!fsHandle) {
     dot.className='syncDot grey'; txt.innerHTML='<b>No file linked.</b> Connect a JSON file for permanent storage.'; rbtn.style.display='none';
   } else if (syncStatus==='synced') {
@@ -720,6 +747,33 @@ function updateFileBar() {
   } else {
     dot.className='syncDot red'; txt.innerHTML='Sync error — check file access'; rbtn.style.display='flex';
   }
+}
+
+function onAndroidDbLinked(name) {
+  androidDbLinked = true;
+  androidDbName = name || 'splitease_db.json';
+  setSyncStatus('synced');
+  toast('✅ Database file linked — auto-saving!');
+}
+
+function onAndroidDbLoaded(jsonText, name) {
+  try {
+    applyData(JSON.parse(jsonText));
+    androidDbLinked = true;
+    androidDbName = name || 'splitease_db.json';
+    save();
+    refreshAll();
+    setSyncStatus('synced');
+    toast('✅ Data loaded and linked!');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('❌ Invalid JSON file');
+  }
+}
+
+function onAndroidDbError(message) {
+  setSyncStatus('error');
+  toast('❌ '+(message || 'DB file access failed'));
 }
 
 // ═══════════════════════════════════════════════════
@@ -1265,7 +1319,7 @@ function exportExcel(){
 function exportCSV(){ exportExcel(); }
 
 // ═══════════════════════════════════════════════════
-//  USER + GITHUB SHARING HELPERS
+//  USER HELPERS
 // ═══════════════════════════════════════════════════
 function openUserModal(){document.getElementById('loginUser').value=activeUser;document.getElementById('loginPass').value=activePass;openM('mUser');}
 function switchUser(){
@@ -1278,50 +1332,6 @@ function switchUser(){
   if(!rootDB.users[u])rootDB.users[u]={password:p,data:blankData()};
   activeUser=u;activePass=p;db=normalizeData(rootDB.users[u].data||{});
   save();closeM('mUser');refreshAll();updateUserUI();toast('✅ User loaded: '+u);
-}
-function loadGitHubConfig(){try{const r=localStorage.getItem('se4_gh');if(r)ghCfg=Object.assign(ghCfg,JSON.parse(r));}catch(e){}updateGitHubUI();}
-function updateGitHubUI(){const el=document.getElementById('ghLbl');if(!el)return;el.textContent=ghCfg.owner&&ghCfg.repo?`${ghCfg.owner}/${ghCfg.repo} · ${ghCfg.path||'splitease_db.json'}`:'Not configured';}
-function openGitHubModal(){
-  document.getElementById('ghOwner').value=ghCfg.owner||'';document.getElementById('ghRepo').value=ghCfg.repo||'';document.getElementById('ghBranch').value=ghCfg.branch||'main';document.getElementById('ghPath').value=ghCfg.path||'splitease_db.json';document.getElementById('ghToken').value=ghCfg.token||'';openM('mGitHub');
-}
-function saveGitHubConfig(){
-  ghCfg={owner:document.getElementById('ghOwner').value.trim(),repo:document.getElementById('ghRepo').value.trim(),branch:document.getElementById('ghBranch').value.trim()||'main',path:document.getElementById('ghPath').value.trim()||'splitease_db.json',token:document.getElementById('ghToken').value.trim()};
-  if(!ghCfg.owner||!ghCfg.repo){toast('❌ Owner and repo are required');return;}
-  try{localStorage.setItem('se4_gh',JSON.stringify(ghCfg));}catch(e){}
-  updateGitHubUI();closeM('mGitHub');toast('✅ GitHub sync settings saved');
-}
-function ghReady(){if(!ghCfg.owner||!ghCfg.repo||!ghCfg.path){toast('❌ Configure GitHub first');return false;}return true;}
-function ghHeaders(){const h={'Accept':'application/vnd.github+json','Content-Type':'application/json'};if(ghCfg.token)h.Authorization='Bearer '+ghCfg.token;return h;}
-function b64enc(str){const bytes=new TextEncoder().encode(str);let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return btoa(bin);}
-function b64dec(str){const bin=atob(String(str||'').replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes);}
-async function getGHFile(){
-  const url=`https://api.github.com/repos/${encodeURIComponent(ghCfg.owner)}/${encodeURIComponent(ghCfg.repo)}/contents/${ghCfg.path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ghCfg.branch||'main')}`;
-  const r=await fetch(url,{headers:ghHeaders()});
-  if(r.status===404)return null;
-  if(!r.ok)throw new Error('GitHub error '+r.status);
-  return await r.json();
-}
-async function pullGitHub(){
-  if(!ghReady())return;
-  try{
-    const f=await getGHFile();
-    if(!f||!f.content){toast('❌ JSON file not found in GitHub');return;}
-    applyData(JSON.parse(b64dec(f.content)));
-    save();refreshAll();toast('⬇️ Pulled latest GitHub JSON');
-  }catch(e){toast('❌ '+e.message);}
-}
-async function pushGitHub(){
-  if(!ghReady())return;
-  if(!ghCfg.token){toast('❌ Token is required to push');return;}
-  try{
-    const cur=await getGHFile();
-    const body={message:`Update SplitEase JSON for ${activeUser}`,content:b64enc(JSON.stringify(exportSnapshot(),null,2)),branch:ghCfg.branch||'main'};
-    if(cur&&cur.sha)body.sha=cur.sha;
-    const url=`https://api.github.com/repos/${encodeURIComponent(ghCfg.owner)}/${encodeURIComponent(ghCfg.repo)}/contents/${ghCfg.path.split('/').map(encodeURIComponent).join('/')}`;
-    const r=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
-    if(!r.ok)throw new Error('GitHub push failed '+r.status);
-    toast('⬆️ Pushed JSON to GitHub');
-  }catch(e){toast('❌ '+e.message);}
 }
 
 // ═══════════════════════════════════════════════════
@@ -1399,18 +1409,17 @@ function ua(id){
 function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function fmtDate(s){try{return new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
-function refreshAll(){buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();renderSum();updateUserUI();updateGitHubUI();}
+function refreshAll(){buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();renderSum();updateUserUI();}
 
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
 async function init(){
   loadFromLS();
-  loadGitHubConfig();
   document.getElementById('hdrAddBtn').onclick=()=>onHdrAdd();
   document.getElementById('curLbl').textContent=db.currency+' '+db.curName;
   document.getElementById('ePfx').textContent=db.currency;
-  buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();updateUserUI();updateGitHubUI();
+  buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();updateUserUI();
   await tryRestoreHandle();
 }
 init();
