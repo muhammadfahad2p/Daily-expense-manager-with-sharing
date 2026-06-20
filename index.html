@@ -1322,9 +1322,13 @@ function buildExcelBlob(){
 function exportExcel(){
   if(!db.expenses.length){toast('❌ No expenses to export');return;}
   const blob=buildExcelBlob();
+  downloadExcelBlob(blob,excelFileName(),'📥 Excel workbook downloaded!');
+}
+function downloadExcelBlob(blob,name,msg){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download=excelFileName();document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('📥 Excel workbook downloaded!');
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(msg)toast(msg);
 }
 async function shareExcel(){
   if(!db.expenses.length){toast('❌ No expenses to share');return;}
@@ -1333,16 +1337,24 @@ async function shareExcel(){
   if(window.AndroidBridge&&typeof AndroidBridge.shareBase64File==='function'){
     const reader=new FileReader();
     reader.onloadend=()=>AndroidBridge.shareBase64File(name,reader.result);
+    reader.onerror=()=>downloadExcelBlob(blob,name,'Sharing failed. Excel downloaded instead.');
     reader.readAsDataURL(blob);
     toast('Preparing share...');
     return;
   }
-  const file=new File([blob],name,{type:'application/vnd.ms-excel'});
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    await navigator.share({files:[file],title:'SplitEase Excel Workbook'});
-    return;
+  if(typeof navigator!=='undefined'&&typeof navigator.share==='function'&&typeof File==='function'){
+    try{
+      const file=new File([blob],name,{type:'application/vnd.ms-excel'});
+      const shareData={files:[file],title:'SplitEase Excel Workbook',text:'SplitEase Excel workbook'};
+      if(!navigator.canShare||navigator.canShare(shareData)){
+        await navigator.share(shareData);
+        return;
+      }
+    }catch(e){
+      if(e&&e.name==='AbortError'){toast('Share cancelled');return;}
+    }
   }
-  exportExcel();
+  downloadExcelBlob(blob,name,'Sharing is not supported in this browser. Excel downloaded instead.');
 }
 function exportCSV(){ exportExcel(); }
 
