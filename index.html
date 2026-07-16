@@ -80,6 +80,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .dlg{background:#fff;border-radius:15px;padding:20px;width:100%;max-width:320px}
 .dT{font-size:.95rem;font-weight:800;margin-bottom:5px}.dM{font-size:.81rem;color:var(--muted);margin-bottom:16px;line-height:1.5}
 .dA{display:flex;gap:8px;justify-content:flex-end}
+.launchNotice{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.64);backdrop-filter:blur(3px)}
+.launchNotice.show{display:flex}
+.launchNoticeCard{width:calc(100vw - 40px);max-width:390px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.35);animation:noticeIn .24s ease}
+.launchNoticeAccent{height:5px;background:linear-gradient(90deg,var(--pd),var(--ps),var(--ok))}
+.launchNoticeBody{padding:22px}
+.launchNoticeLabel{color:var(--p);font-size:.68rem;font-weight:800;text-transform:uppercase;margin-bottom:7px}
+.launchNoticeTitle{font-size:1.16rem;font-weight:800;line-height:1.3;margin-bottom:10px;color:var(--txt)}
+.launchNoticeText{font-size:.84rem;line-height:1.6;color:var(--muted)}
+.launchNoticeSafe{margin-top:13px;padding:10px 11px;border-radius:10px;background:rgba(67,160,71,.09);border-left:3px solid var(--ok);color:#1b5e20;font-size:.77rem;font-weight:700;line-height:1.5}
+.launchNoticeBtn{width:100%;margin-top:17px;padding:11px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;font:800 .86rem inherit;cursor:pointer}
+.launchNoticeBtn:active{transform:scale(.98)}
+body.launchNoticeOpen{overflow:hidden}
+@keyframes noticeIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .fG{margin-bottom:11px}.fL{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
 .fI{width:100%;padding:10px 12px;border:2px solid var(--bdr);border-radius:10px;font-family:inherit;font-size:.9rem;color:var(--txt);transition:border-color .2s;background:#fff}
 .fI:focus{outline:none;border-color:var(--p)}
@@ -131,7 +144,20 @@ textarea.fI{resize:none;line-height:1.5}
 .curCustom .fRow{margin-bottom:8px}
 </style>
 </head>
-<body>
+<body class="launchNoticeOpen">
+
+<div class="launchNotice show" id="launchNotice" role="dialog" aria-modal="true" aria-labelledby="launchNoticeTitle" aria-describedby="launchNoticeText">
+  <div class="launchNoticeCard">
+    <div class="launchNoticeAccent"></div>
+    <div class="launchNoticeBody">
+      <div class="launchNoticeLabel">Important update</div>
+      <h2 class="launchNoticeTitle" id="launchNoticeTitle">Dost Split Ease is coming to Google Play</h2>
+      <p class="launchNoticeText" id="launchNoticeText">After the Android app is released and users have had enough time to move, this website will eventually be retired. We will provide advance notice and clear instructions before that happens, so you can safely export or move your records.</p>
+      <div class="launchNoticeSafe">Nothing is changing today. This announcement does not modify or delete any of your data, and you can continue using the website normally.</div>
+      <button class="launchNoticeBtn" id="launchNoticeButton" type="button" onclick="dismissLaunchNotice()">I understand</button>
+    </div>
+  </div>
+</div>
 
 <header class="hdr">
   <div class="hdr-title">💸 SplitEase</div>
@@ -1454,6 +1480,15 @@ function refreshAll(){buildChips();buildSummaryChips();renderExp();renderStats()
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
+function dismissLaunchNotice(){
+  const notice=document.getElementById('launchNotice');
+  if(notice){
+    notice.classList.remove('show');
+    notice.setAttribute('aria-hidden','true');
+  }
+  document.body.classList.remove('launchNoticeOpen');
+}
+
 async function init(){
   loadFromLS();
   document.getElementById('hdrAddBtn').onclick=()=>onHdrAdd();
@@ -1465,6 +1500,7 @@ async function init(){
   }
   buildChips();buildSummaryChips();renderExp();renderStats();renderGrp();updateUserUI();
   await tryRestoreHandle();
+  requestAnimationFrame(()=>document.getElementById('launchNoticeButton')?.focus());
 }
 init();
 </script>
