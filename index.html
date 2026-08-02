@@ -89,7 +89,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .launchNoticeTitle{font-size:1.16rem;font-weight:800;line-height:1.3;margin-bottom:10px;color:var(--txt)}
 .launchNoticeText{font-size:.84rem;line-height:1.6;color:var(--muted)}
 .launchNoticeSafe{margin-top:13px;padding:10px 11px;border-radius:10px;background:rgba(67,160,71,.09);border-left:3px solid var(--ok);color:#1b5e20;font-size:.77rem;font-weight:700;line-height:1.5}
-.launchNoticeBtn{width:100%;margin-top:17px;padding:11px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;font:800 .86rem inherit;cursor:pointer}
+.launchNoticeActions{display:grid;gap:9px;margin-top:17px}
+.launchNoticeBtn{width:100%;min-height:46px;padding:11px 16px;border-radius:10px;font:800 .86rem inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;transition:transform .15s,opacity .15s}
+.launchNoticeBtnPrimary{border:0;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;box-shadow:0 4px 12px rgba(92,107,192,.28)}
+.launchNoticeBtnSecondary{border:2px solid var(--bdr);background:#fff;color:var(--pd)}
 .launchNoticeBtn:active{transform:scale(.98)}
 body.launchNoticeOpen{overflow:hidden}
 @keyframes noticeIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -142,6 +145,28 @@ textarea.fI{resize:none;line-height:1.5}
 /* Custom currency section */
 .curCustom{padding:12px 13px;border-top:1px solid var(--bdr);background:rgba(92,107,192,.04)}
 .curCustom .fRow{margin-bottom:8px}
+
+.playStoreBtn{
+  background:linear-gradient(135deg,#43a047,#2e7d32);
+  color:#fff;
+  border:none;
+  padding:7px 11px;
+  border-radius:20px;
+  font-size:.78rem;
+  font-weight:800;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-family:inherit;
+  white-space:nowrap;
+  animation:playPulse 1.2s infinite;
+}
+@keyframes playPulse{
+  0%{box-shadow:0 0 0 0 rgba(67,160,71,.7)}
+  70%{box-shadow:0 0 0 10px rgba(67,160,71,0)}
+  100%{box-shadow:0 0 0 0 rgba(67,160,71,0)}
+}
 </style>
 </head>
 <body class="launchNoticeOpen">
@@ -150,18 +175,26 @@ textarea.fI{resize:none;line-height:1.5}
   <div class="launchNoticeCard">
     <div class="launchNoticeAccent"></div>
     <div class="launchNoticeBody">
-      <div class="launchNoticeLabel">Important update</div>
-      <h2 class="launchNoticeTitle" id="launchNoticeTitle">Dost Split Ease is coming to Google Play</h2>
-      <p class="launchNoticeText" id="launchNoticeText">After the Android app is released and users have had enough time to move, this website will eventually be retired. We will provide advance notice and clear instructions before that happens, so you can safely export or move your records.</p>
-      <div class="launchNoticeSafe">Nothing is changing today. This announcement does not modify or delete any of your data, and you can continue using the website normally.</div>
-      <button class="launchNoticeBtn" id="launchNoticeButton" type="button" onclick="dismissLaunchNotice()">I understand</button>
+      <div class="launchNoticeLabel">Now available</div>
+      <h2 class="launchNoticeTitle" id="launchNoticeTitle">Dost Split Ease is now on Google Play</h2>
+      <p class="launchNoticeText" id="launchNoticeText">For the best experience, install the Android app from Google Play. It gives you faster access from your phone and makes it easier to receive future app updates.</p>
+      <div class="launchNoticeSafe">Prefer the website? No problem — you can continue using this web version normally. Both options remain available.</div>
+      <div class="launchNoticeActions">
+        <a class="launchNoticeBtn launchNoticeBtnPrimary" id="launchNoticeButton" href="https://play.google.com/store/apps/details?id=com.dostsplitease.app" target="_blank" rel="noopener noreferrer" onclick="dismissLaunchNotice()">▶ Download on Google Play</a>
+        <button class="launchNoticeBtn launchNoticeBtnSecondary" type="button" onclick="dismissLaunchNotice()">Continue with Web App</button>
+      </div>
     </div>
   </div>
 </div>
 
 <header class="hdr">
   <div class="hdr-title">💸 SplitEase</div>
-  <button class="hdr-add" id="hdrAddBtn" onclick="onHdrAdd()">＋ Add</button>
+  <div style="display:flex;align-items:center;gap:7px">
+    <button class="playStoreBtn" onclick="window.open('https://play.google.com/store/apps/details?id=com.dostsplitease.app','_blank')">
+      📱 Get App
+    </button>
+    <button class="hdr-add" id="hdrAddBtn" onclick="onHdrAdd()">＋ Add</button>
+  </div>
 </header>
 
 <div class="content">
